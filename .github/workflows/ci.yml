@@ -26,12 +26,12 @@ jobs:
       
       # Step C: Static Code Analysis (Linting)
       - name: Run Ruff Linter
-        run: pixi run ruff check .
+        run: pixi run lint
 
       # Step D: Enforce Code Style Standards (Formatting)
       - name: Run Ruff Format Check
-        run: pixi run ruff format --check src/ tests/
+        run: pixi run lint
 
       # Step E: Execute Test Suite
       - name: Execute Test Suite
-        run: pixi run pytest tests/
+        run: pixi run test
