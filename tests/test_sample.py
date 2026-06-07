@@ -2,6 +2,7 @@
 
 from biocanvas.sample import add_numbers
 
+
 def test_add_numbers_success():
     """Verify core arithmetic maps correctly."""
 

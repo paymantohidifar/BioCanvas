@@ -22,16 +22,12 @@ jobs:
         uses: prefix-dev/setup-pixi@v0.8.0
         with:
           pixi-version: v0.67.0
-          cache-environment: true
+          cache: true
       
       # Step C: Static Code Analysis (Linting)
       - name: Run Ruff Linter
         run: pixi run lint
 
-      # Step D: Enforce Code Style Standards (Formatting)
-      - name: Run Ruff Format Check
-        run: pixi run lint
-
-      # Step E: Execute Test Suite
+      # Step D: Execute Test Suite
       - name: Execute Test Suite
         run: pixi run test
