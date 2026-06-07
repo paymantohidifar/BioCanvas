@@ -2,5 +2,12 @@
 .pixi/*
 !.pixi/config.toml
 
+# python
+__pycache__/
+
+# pytest
+.pytest_cache/
+
+
 # misc
 pixi-blog.md
