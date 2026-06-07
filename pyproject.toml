@@ -1,0 +1,10 @@
+[project]
+name = "biocanvas"
+version = "0.1.0"
+description = "BioCanvas is a library for biological data analysis and visualization."
+requires-python = ">=3.11"
+dependencies = []
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
