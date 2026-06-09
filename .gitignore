@@ -8,6 +8,6 @@ __pycache__/
 # pytest
 .pytest_cache/
 
-
 # misc
 pixi-blog.md
+*.code-workspace
