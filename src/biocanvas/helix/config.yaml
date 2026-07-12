@@ -20,7 +20,11 @@
 # ---------------------------------------------------------------------------
 project_name: "Project Helix"
 version: "0.1.0"
-sharepoint_data_dir: "/General/WS3 Fermentation/fermenter runs/data/"
+# Path to this project's local SQLite database file (raw experiment files
+# stored as BLOBs — see database-changes.md). Kept under the
+# `sharepoint_data_dir` key for interface compatibility with the pre-SQLite
+# SharePoint backend.
+sharepoint_data_dir: "helix/helix.db"
 
 # ---------------------------------------------------------------------------
 # Benchling assay panels (order matters — first panel is the Sample sheet)

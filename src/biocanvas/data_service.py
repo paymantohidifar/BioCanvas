@@ -2,9 +2,10 @@
 """Pure data-pipeline service for the biocanvas App.
 
 DataService owns all state and logic that is independent of ipywidgets:
-SharePoint connectivity, project-module loading, file parsing, master-table
-construction, and plot-property filtering.  The App view layer instantiates
-one DataService and delegates every data operation to it.
+local SQLite-backed drive connectivity, project-module loading, file
+parsing, master-table construction, and plot-property filtering.  The App
+view layer instantiates one DataService and delegates every data operation
+to it.
 """
 import io
 import gc
@@ -25,9 +26,9 @@ logger = logging.getLogger(__name__)
 class DataService:
     """Encapsulates all data-pipeline logic for the biocanvas application.
 
-    Owns SharePoint connectivity, project-module loading, raw-file parsing,
-    master-table construction, and plot-property filtering.  Contains no
-    ipywidgets dependency.
+    Owns local SQLite-backed drive connectivity, project-module loading,
+    raw-file parsing, master-table construction, and plot-property
+    filtering.  Contains no ipywidgets dependency.
 
     Class attributes:
         PROJECT_LIST: Mapping of project name → PBKDF2 passcode hash, loaded
@@ -54,7 +55,7 @@ class DataService:
         self.tabs_dir: str = ""
         self.figs_dir: str = ""
 
-        # SharePoint client
+        # Local SQLite-backed drive client
         self.sharepoint = utils_io.SharePoint()
 
         # Master data tables
@@ -153,11 +154,11 @@ class DataService:
             return False, log_entries
 
     # ------------------------------------------------------------------
-    # SharePoint connectivity
+    # Local SQLite-backed drive connectivity
     # ------------------------------------------------------------------
 
     def fetch_experiment_names(self) -> Tuple[List[str], List[helpers.LogEntry]]:
-        """Connects to SharePoint and returns a list of experiment directory names.
+        """Connects to the project's local SQLite database and returns experiment directory names.
 
         Must only be called after :meth:`load_project_modules` succeeds.
 
@@ -168,7 +169,7 @@ class DataService:
         log_entries: List[helpers.LogEntry] = []
         try:
             logger.debug(
-                "Connecting to SharePoint for project '%s'",
+                "Connecting to local database for project '%s'",
                 self.config_module.PROJECT_NAME,  # type: ignore
             )
             self.sharepoint.connect(
@@ -177,13 +178,13 @@ class DataService:
             )
             items = self.sharepoint.get_item_names()
             exp_names = [item for item in items if item.lower().startswith('exp')]
-            logger.info("Found %d experiment(s) on SharePoint", len(exp_names))
+            logger.info("Found %d experiment(s) in the local database", len(exp_names))
             if not exp_names:
                 log_entries.append(("No experiments found in the project directory.", 'warning'))
             return exp_names, log_entries
         except Exception as e:
-            log_entries.append(("Error connecting to SharePoint (see logs for details)", 'error'))
-            logger.error("SharePoint connection failed: %s", e, exc_info=True)
+            log_entries.append(("Error connecting to the local database (see logs for details)", 'error'))
+            logger.error("Local database connection failed: %s", e, exc_info=True)
             return [], log_entries
 
     # ------------------------------------------------------------------

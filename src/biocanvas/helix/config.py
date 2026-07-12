@@ -44,6 +44,9 @@ _cfg: Dict[str, Any] = yaml.safe_load((Path(__file__).parent / 'config.yaml').re
 # ---------------------------------------------------------------------------
 PROJECT_NAME: str = _cfg['project_name']
 PROJECT_VERSION: str = f"{PROJECT_NAME.split()[1].lower()}-v{_cfg['version']}"
+# Path to this project's local SQLite database file. The name is kept as
+# SHAREPOINT_DATA_DIR for interface compatibility with the pre-SQLite
+# SharePoint backend (see biocanvas/utils/drive.py).
 SHAREPOINT_DATA_DIR: str = _cfg['sharepoint_data_dir']
 
 # ---------------------------------------------------------------------------

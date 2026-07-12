@@ -41,10 +41,17 @@ plotters into matplotlib figures shown in ipywidgets `Output` widgets →
 optionally saved with `utils/stats.py` significance tables → consolidated
 into an xlsx/html report by the Publish Results tab.
 
-**Note:** `utils/drive.MSDrive` is currently a placeholder that raises
-`NotImplementedError` on every method — the real SharePoint client
-(`bifrost.auth.drive.MSDrive`) came from a now-unavailable external monorepo.
-A local SQLite-backed replacement is planned but not yet implemented.
+**Note:** `utils/drive.MSDrive` was originally a placeholder standing in for
+the real SharePoint client (`bifrost.auth.drive.MSDrive`), which came from a
+now-unavailable external monorepo. It has since been replaced with a local
+SQLite-backed implementation: one `.db` file per project (path configured
+via each project's `SHAREPOINT_DATA_DIR`, kept under that name for interface
+compatibility), storing raw experiment files (`Meta.csv`, `Benchling.zip`,
+`Eve.zip`/`Pi.zip`) as BLOBs in a simple virtual-filesystem table. See
+`database-changes.md` for the schema and details. `utils/io.SharePoint`
+still exposes the same `connect`/`get_item_names`/`load_data` interface, so
+`DataService` needed no call-site changes. Populating a project's database
+with real data (ingestion tooling) is a separate follow-up.
 
 ## Workspace Dependency Architecture (`pixi.toml`)
 
