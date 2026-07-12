@@ -13,21 +13,26 @@ format = "ruff format src/ tests/"
 
 [dependencies]
 python = "3.11.*"
-pandas = ">=3.0.0"       # Upgraded to modern Pandas 3.0 series
-numpy = ">=2.2.0"        # Advanced to maintain data structure compatibility
+pandas = ">=3.0.0"       
+numpy = ">=2.2.0"        
 matplotlib = ">=3.10.0"
 seaborn = ">=0.13.2"
-scikit-learn = ">=1.6.0" 
-scipy = ">=1.15.0"       # Upgraded to track Pandas 3.0 C-extensions
+scikit-learn = ">=1.6.0"
+scipy = ">=1.15.0"       
 tqdm = ">=4.67.0"
 jupyter = ">=1.1.0"
 pixi-kernel = "*"
+ipywidgets = ">=8.1.0"   
+ipython = ">=8.0.0"      
+pyyaml = ">=6.0"         
+xlsxwriter = ">=3.2.0"
 
 [pypi-dependencies]
 biocanvas = { path = ".", editable = true }
 
 [feature.dev.dependencies]
 pytest = ">=8.3.0"
+pytest-mock = ">=3.14.0"
 ruff = ">=0.9.0"
 
 [environments]
