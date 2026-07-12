@@ -457,21 +457,20 @@ class GeneralAnalyteTable(GeneralTable):
 
 
 class SharePoint:
-    """A class for interacting with SharePoint/Microsoft Drive.
+    """A class for interacting with a project's local SQLite-backed drive.
 
-    Provides functionality to connect to SharePoint sites, list items,
-    and load data from Microsoft Drive.
+    Previously backed by SharePoint/Microsoft Drive via an MS Graph client;
+    now backed by :class:`~biocanvas.utils.drive.MSDrive`, a local SQLite
+    database (one file per project). The public interface (``connect``,
+    ``get_item_names``, ``load_data``) is unchanged so callers do not need
+    to know the storage backend.
 
     Attributes:
-        drive: MSDrive instance for API interactions.
-        site_id: SharePoint site identifier.
-        drive_id: Drive identifier within the site.
-        data_dir: Base directory path for data operations.
+        drive: MSDrive instance for local database interactions.
+        data_dir: Filesystem path to the project's SQLite ``.db`` file.
     """
     def __init__(self):
         self.drive = MSDrive()
-        self.site_id = ""
-        self.drive_id = ""
         self.data_dir = ""
         self._data_cache: Dict[str, bytes] = {}
         self._list_cache: Dict[str, List[str]] = {}
@@ -482,19 +481,19 @@ class SharePoint:
         self._list_cache.clear()
 
     def connect(self, project_name: str, data_dir: str):
-        """Connects to a SharePoint project and sets up data directory.
+        """Connects to a project's local SQLite database.
 
         Args:
-            project_name: Name of the SharePoint project to connect to.
-            data_dir: Base directory path for data operations.
+            project_name: Name of the project (currently unused by the
+                SQLite backend; kept for interface compatibility).
+            data_dir: Filesystem path to the project's SQLite ``.db`` file.
         """
         self.clear_cache()
-        self.site_id: str = self.drive.search_for_site(project_name)['value'][0]['id']  # type: ignore
-        self.drive_id: str = self.drive.list_site_drives(self.site_id)['value'][0]['id']  # type: ignore
         self.data_dir: str = data_dir
+        self.drive.connect(data_dir)
 
     def get_item_names(self, item: str = "") -> List[str]:
-        """Gets list of item names from SharePoint directory.
+        """Gets list of item names from a directory in the local database.
 
         Args:
             item: Optional subdirectory path to list items from.
@@ -505,22 +504,21 @@ class SharePoint:
         cache_key = item
         if cache_key in self._list_cache:
             return list(self._list_cache[cache_key])
-        data_dirs_json = self.drive.list_items(drive_id=self.drive_id, folder_path=self.data_dir + item)  # type: ignore
-        names = [el['name'] for el in data_dirs_json['value']] # type: ignore
+        names = self.drive.list_items(item)
         self._list_cache[cache_key] = names
-        return names # type: ignore
+        return names
 
     def load_data(self, item: str):
-        """Loads data content from SharePoint item.
+        """Loads data content for an item from the local database.
 
         Args:
-            item: Name of the item to load data from.
+            item: Path of the item to load data from.
 
         Returns:
-            Data content from the specified SharePoint item.
+            Data content from the specified item.
         """
         if item in self._data_cache:
             return self._data_cache[item]
-        content = self.drive.data_content(drive_id=self.drive_id, item_path=self.data_dir + item)
+        content = self.drive.data_content(item)
         self._data_cache[item] = content
         return content
