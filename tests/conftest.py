@@ -1,5 +1,6 @@
 """Pytest fixtures for biocanvas tests."""
 import io
+import sqlite3
 import zipfile
 from unittest.mock import patch as _patch
 
@@ -7,6 +8,8 @@ import pandas as pd
 import numpy as np
 from typing import Dict, Any
 import pytest
+
+from biocanvas.db import schema as db_schema
 
 
 class _SessionMocker:
@@ -26,6 +29,17 @@ class _SessionMocker:
 def session_mocker():
     """Provide session_mocker required by root tests/conftest.py setup_module."""
     return _SessionMocker()
+
+########################################################
+# Fixtures for biocanvas.db tests
+########################################################
+@pytest.fixture
+def db_conn() -> sqlite3.Connection:
+    """Function-scoped in-memory SQLite connection with the BioCanvas schema created."""
+    conn = db_schema.connect(':memory:')
+    yield conn
+    conn.close()
+
 
 ########################################################
 # Sample data fixtures for general test cases

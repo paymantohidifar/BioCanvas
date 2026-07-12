@@ -48,7 +48,7 @@ SQLite-backed implementation: one `.db` file per project (path configured
 via each project's `SHAREPOINT_DATA_DIR`, kept under that name for interface
 compatibility), storing raw experiment files (`Meta.csv`, `Benchling.zip`,
 `Eve.zip`/`Pi.zip`) as BLOBs in a simple virtual-filesystem table. See
-`database-changes.md` for the schema and details. `utils/io.SharePoint`
+`drive-backend-changes.md` for the schema and details. `utils/io.SharePoint`
 still exposes the same `connect`/`get_item_names`/`load_data` interface, so
 `DataService` needed no call-site changes. Populating a project's database
 with real data (ingestion tooling) is a separate follow-up.
