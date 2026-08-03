@@ -67,7 +67,29 @@ uv run jupyter notebook ui.ipynb
 ```
 
 Select a project, enter its passcode, click **Connect**, then **Process**
-to build the master tables and unlock the analysis tabs.
+to build the master tables and unlock the analysis tabs. This requires a
+passcode (see [Project Passcodes](#project-passcodes)) and a populated local
+database (see [Demo Data](#demo-data)) to already be set up.
+
+## Demo Data
+
+The `helix` project ships without a populated local database — real
+data-ingestion tooling is a separate follow-up. The **UI in this repo is 
+currently backed by synthetic, generated data**, not real
+experiment results, so you can exercise the full Connect → Process → plot
+pipeline end to end.
+
+Generate it with:
+
+```bash
+pixi run python scripts/generate_demo_helix_db.py
+```
+
+This creates `helix/helix.db` with 10 synthetic experiments (3 conditions ×
+2 replicates each) and condition-differentiated growth/titer/gas-exchange
+trends. It's regenerated fresh each run (fixed random seed, so re-running is
+reproducible) and is gitignored — treat any plots or numbers you see as demo
+data only, not real fermentation results.
 
 ## Project Passcodes
 
