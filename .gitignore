@@ -6,12 +6,15 @@
 .pixi/*
 !.pixi/config.toml
 
+# Virtual environments
+.venv/
+
 # python
 __pycache__/
 
-# pytest
+# pytest and ruff
 .pytest_cache/
-
+.ruff_cache/
 # misc
 docs/
 
