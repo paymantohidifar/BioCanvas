@@ -7,16 +7,21 @@
 !.pixi/config.toml
 
 # Virtual environments
-.venv/
+.venv/*
 
 # python
 __pycache__/
 
+# Jupyter
+.ipynb_checkpoints/
+
 # pytest and ruff
 .pytest_cache/
 .ruff_cache/
+
 # misc
 docs/
+Project Helix**/
 
 # secrets
 src/biocanvas/passcodes.json
