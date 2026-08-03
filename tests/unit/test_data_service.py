@@ -317,29 +317,29 @@ class TestAugmentTables:
 
         for i, t in enumerate([0.0, 24.0, 72.0, 100.0]):
             row = l1.iloc[i]
-            assert row[('Alpha', 'TestProduct Titer (g/L)')] == pytest.approx(
+            assert row[('Lcuv', 'TestProduct Titer (g/L)')] == pytest.approx(
                 expected_titer[i]
             ), f"Titer mismatch at t={t}"
 
-            assert row[('Alpha', 'TestProduct Sp. Titer (g/g)')] == pytest.approx(
+            assert row[('Lcuv', 'TestProduct Sp. Titer (g/g)')] == pytest.approx(
                 expected_sp_titer[i]
             ), f"Sp. Titer mismatch at t={t}"
 
             if np.isnan(expected_rate[i]):
-                assert np.isnan(row[('Alpha', 'TestProduct Rate (g/L/h)')]), (
+                assert np.isnan(row[('Lcuv', 'TestProduct Rate (g/L/h)')]), (
                     f"Rate at t={t} must be NaN"
                 )
             else:
-                assert row[('Alpha', 'TestProduct Rate (g/L/h)')] == pytest.approx(
+                assert row[('Lcuv', 'TestProduct Rate (g/L/h)')] == pytest.approx(
                     expected_rate[i]
                 ), f"Rate mismatch at t={t}"
 
             if np.isnan(expected_ins_rate[i]):
-                assert np.isnan(row[('Alpha', 'TestProduct Ins. Rate (g/L/h)')]), (
+                assert np.isnan(row[('Lcuv', 'TestProduct Ins. Rate (g/L/h)')]), (
                     f"Ins. Rate at t={t} must be NaN"
                 )
             else:
-                assert row[('Alpha', 'TestProduct Ins. Rate (g/L/h)')] == pytest.approx(
+                assert row[('Lcuv', 'TestProduct Ins. Rate (g/L/h)')] == pytest.approx(
                     expected_ins_rate[i]
                 ), f"Ins. Rate mismatch at t={t}"
 
@@ -363,7 +363,7 @@ class TestAugmentTables:
 
         bench = augmented.augmented_bench_table
         s1_t24 = bench[(bench['Tank'] == 'S1') & (bench['Time (h)'] == 24.0)].iloc[0]
-        assert s1_t24[('Alpha', 'TestProduct Titer (g/L)')] == pytest.approx(expected_titer)
+        assert s1_t24[('Lcuv', 'TestProduct Titer (g/L)')] == pytest.approx(expected_titer)
 
     def test_try_kpi_drops_raw_titer_column(
         self,
@@ -377,7 +377,7 @@ class TestAugmentTables:
             meta_table_for_augment, raw_bench_table_for_augment, raw_process_table_for_augment,
             augment_config,
         )
-        assert ('Alpha', 'TestProduct (g/L)') not in augmented.augmented_bench_table.columns
+        assert ('Lcuv', 'TestProduct (g/L)') not in augmented.augmented_bench_table.columns
 
     def test_try_kpi_rate_columns_present(
         self,
@@ -392,9 +392,9 @@ class TestAugmentTables:
             augment_config,
         )
         cols = augmented.augmented_bench_table.columns
-        assert ('Alpha', 'TestProduct Sp. Titer (g/g)') in cols
-        assert ('Alpha', 'TestProduct Rate (g/L/h)') in cols
-        assert ('Alpha', 'TestProduct Ins. Rate (g/L/h)') in cols
+        assert ('Lcuv', 'TestProduct Sp. Titer (g/g)') in cols
+        assert ('Lcuv', 'TestProduct Rate (g/L/h)') in cols
+        assert ('Lcuv', 'TestProduct Ins. Rate (g/L/h)') in cols
 
     def test_try_kpi_weight_yield_only_when_flag_true(
         self,
@@ -414,16 +414,16 @@ class TestAugmentTables:
         s1_rows = bench[bench['Tank'] == 'S1']
 
         # Columns exist in the table (populated by ferm-tank rows)
-        assert ('Alpha', 'TestProduct Weight (g)') in bench.columns
-        assert ('Alpha', 'TestProduct Yield (g/g)') in bench.columns
+        assert ('Lcuv', 'TestProduct Weight (g)') in bench.columns
+        assert ('Lcuv', 'TestProduct Yield (g/g)') in bench.columns
 
         # Seed-tank rows carry NaN for those columns
-        assert s1_rows[('Alpha', 'TestProduct Weight (g)')].isna().all()
-        assert s1_rows[('Alpha', 'TestProduct Yield (g/g)')].isna().all()
+        assert s1_rows[('Lcuv', 'TestProduct Weight (g)')].isna().all()
+        assert s1_rows[('Lcuv', 'TestProduct Yield (g/g)')].isna().all()
 
         # Verify the same product columns DO appear with include_weight_yield=True
         grp = pd.DataFrame({
-            ('Alpha', 'TestProduct (g/L)'):                 [0.0,   1.5],
+            ('Lcuv', 'TestProduct (g/L)'):                 [0.0,   1.5],
             ('Growth', '% Insoluble Solids (g/g)'):         [0.0,  10.0],
             ('Growth', 'DCW (g/L)'):                        [2.0,   3.5],
             'Time (h)':                                      [0.0,  12.0],
@@ -436,8 +436,8 @@ class TestAugmentTables:
             augment_config['panel_display_names'],
             include_weight_yield=True,
         )
-        assert ('Alpha', 'TestProduct Weight (g)') in result.columns
-        assert ('Alpha', 'TestProduct Yield (g/g)') in result.columns
+        assert ('Lcuv', 'TestProduct Weight (g)') in result.columns
+        assert ('Lcuv', 'TestProduct Yield (g/g)') in result.columns
 
     # ------------------------------------------------------------------ #
     # Output messages                                                      #
@@ -809,7 +809,7 @@ class TestAugmentTables:
         )
         bench = augmented.augmented_bench_table
         ex_rows = bench[bench['Tank'] == 'EX'].sort_values('Time (h)')
-        titer = ex_rows[('Alpha', 'TestProduct Titer (g/L)')].tolist()
+        titer = ex_rows[('Lcuv', 'TestProduct Titer (g/L)')].tolist()
         assert titer == pytest.approx([0.0, 0.5, 1.0, 1.5])
 
     def test_try_kpi_specific_titer_exact_value(
@@ -830,7 +830,7 @@ class TestAugmentTables:
         )
         bench = augmented.augmented_bench_table
         ex_rows = bench[bench['Tank'] == 'EX'].sort_values('Time (h)')
-        sp_titer = ex_rows[('Alpha', 'TestProduct Sp. Titer (g/g)')].tolist()
+        sp_titer = ex_rows[('Lcuv', 'TestProduct Sp. Titer (g/g)')].tolist()
         assert sp_titer[0] == pytest.approx(0.0)
         assert sp_titer[1] == pytest.approx(0.25)
         assert sp_titer[2] == pytest.approx(1.0 / 3.0)
@@ -854,7 +854,7 @@ class TestAugmentTables:
         )
         bench = augmented.augmented_bench_table
         ex_rows = bench[bench['Tank'] == 'EX'].sort_values('Time (h)')
-        rate = ex_rows[('Alpha', 'TestProduct Rate (g/L/h)')].tolist()
+        rate = ex_rows[('Lcuv', 'TestProduct Rate (g/L/h)')].tolist()
         assert np.isnan(rate[0]), "Cumulative Rate at t=0 must be NaN (0/0)"
         assert rate[1] == pytest.approx(0.05)
         assert rate[2] == pytest.approx(0.05)
@@ -874,7 +874,7 @@ class TestAugmentTables:
         )
         bench = augmented.augmented_bench_table
         ex_rows = bench[bench['Tank'] == 'EX'].sort_values('Time (h)')
-        ins_rate_t0 = ex_rows[('Alpha', 'TestProduct Ins. Rate (g/L/h)')].iloc[0]
+        ins_rate_t0 = ex_rows[('Lcuv', 'TestProduct Ins. Rate (g/L/h)')].iloc[0]
         assert np.isnan(ins_rate_t0)
 
     def test_try_kpi_instantaneous_rate_exact_value(
@@ -894,7 +894,7 @@ class TestAugmentTables:
         )
         bench = augmented.augmented_bench_table
         ex_rows = bench[bench['Tank'] == 'EX'].sort_values('Time (h)')
-        ins_rate = ex_rows[('Alpha', 'TestProduct Ins. Rate (g/L/h)')].tolist()
+        ins_rate = ex_rows[('Lcuv', 'TestProduct Ins. Rate (g/L/h)')].tolist()
         assert ins_rate[1] == pytest.approx(0.05)    # t=10: (0.5-0)/10
         assert ins_rate[2] == pytest.approx(0.05)    # t=20: (1.0-0.5)/10
         assert ins_rate[3] == pytest.approx(0.05)    # t=30: (1.5-1.0)/10
@@ -920,7 +920,7 @@ class TestAugmentTables:
         )
         bench = augmented.augmented_bench_table
         ex_rows = bench[bench['Tank'] == 'EX'].sort_values('Time (h)')
-        weight = ex_rows[('Alpha', 'TestProduct Weight (g)')].tolist()
+        weight = ex_rows[('Lcuv', 'TestProduct Weight (g)')].tolist()
         assert weight[0] == pytest.approx(0.0)
         assert weight[1] == pytest.approx(0.5075)
         assert weight[3] == pytest.approx(1.635)
@@ -944,7 +944,7 @@ class TestAugmentTables:
         )
         bench = augmented.augmented_bench_table
         ex_rows = bench[bench['Tank'] == 'EX'].sort_values('Time (h)')
-        yield_ = ex_rows[('Alpha', 'TestProduct Yield (g/g)')].tolist()
+        yield_ = ex_rows[('Lcuv', 'TestProduct Yield (g/g)')].tolist()
         assert np.isnan(yield_[0]), "Yield at t=0 must be NaN (Carbon Consumed = 0)"
         assert yield_[2] == pytest.approx(1.060 / 24.0)
         assert yield_[3] == pytest.approx(1.635 / 29.0)
@@ -963,7 +963,7 @@ class TestAugmentTables:
         bench table must not contain any 'GhostProduct' column.
         """
         cfg = dict(augment_config_exact)
-        cfg['panels_for_try'] = {'Alpha': ['GhostProduct']}
+        cfg['panels_for_try'] = {'Lcuv': ['GhostProduct']}
         augmented = self._make_instance(
             meta_exact_for_augment, bench_exact_for_augment, process_exact_for_augment, cfg
         )

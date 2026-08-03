@@ -20,17 +20,19 @@ processing and visualizing biological fermentation experiment data. Python
   plot-property filtering.
 - `utils/` — `auth.py` (PBKDF2 passcode hashing/verification), `io.py`
   (dir setup, dynamic module loading, `GeneralTable`/`GeneralAnalyteTable`,
-  `SharePoint` client, xlsx/html report generation), `drive.py` (`MSDrive`
-  placeholder — see below), `logging_config.py`, `stats.py` (descriptive +
-  significance testing), `visualization.py` (`QCPlotter`, `OLPlotter`,
-  `CCPlotter`, `GCPlotter`), `helpers.py` (shared types/exceptions).
+  `LocalDataClient` client, xlsx/html report generation), `logging_config.py`,
+  `stats.py` (descriptive + significance testing), `visualization.py`
+  (`QCPlotter`, `OLPlotter`, `CCPlotter`, `GCPlotter`), `helpers.py` (shared
+  types/exceptions).
+- `db/` — `local_database.py` (`LocalDataBase` — see below), `schema.py`,
+  `importer.py` for the SQLite-backed raw-data store.
 - `helix/`, `spore/` — per-project subpackages, loaded dynamically by name
   (`biocanvas.<project>.{meta,benchling,ferm_process,config}`) based on the
   project selected in the UI. Project name → passcode hash mapping lives in
   `passcodes.json`. `spore/` is currently a stub (`__init__.py` only).
 
 **Data flow:** `App` → `DataService.build_master_tables` → drive client
-(`utils/io.SharePoint`, backed by `utils/drive.MSDrive`) fetches raw
+(`utils/io.LocalDataClient`, backed by `db/local_database.LocalDataBase`) fetches raw
 `Meta.csv` / `Benchling.zip` / `Eve.zip`|`Pi.zip` per experiment → parsed by
 the active project's `meta.py`/`benchling.py`/`ferm_process.py` → augmented
 by `AugmentTables` (TRY KPIs, mass balance, carbon accounting) → concatenated
@@ -41,14 +43,14 @@ plotters into matplotlib figures shown in ipywidgets `Output` widgets →
 optionally saved with `utils/stats.py` significance tables → consolidated
 into an xlsx/html report by the Publish Results tab.
 
-**Note:** `utils/drive.MSDrive` was originally a placeholder standing in for
-the real SharePoint client (`bifrost.auth.drive.MSDrive`), which came from a
+**Note:** `db/local_database.LocalDataBase` was originally a placeholder
+standing in for the real SharePoint client, which came from a
 now-unavailable external monorepo. It has since been replaced with a local
 SQLite-backed implementation: one `.db` file per project (path configured
 via each project's `SHAREPOINT_DATA_DIR`, kept under that name for interface
 compatibility), storing raw experiment files (`Meta.csv`, `Benchling.zip`,
 `Eve.zip`/`Pi.zip`) as BLOBs in a simple virtual-filesystem table. See
-`drive-backend-changes.md` for the schema and details. `utils/io.SharePoint`
+`drive-backend-changes.md` for the schema and details. `utils/io.LocalDataClient`
 still exposes the same `connect`/`get_item_names`/`load_data` interface, so
 `DataService` needed no call-site changes. Populating a project's database
 with real data (ingestion tooling) is a separate follow-up.

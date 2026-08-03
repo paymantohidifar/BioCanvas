@@ -1,14 +1,10 @@
-# biocanvas/utils/drive.py
+# biocanvas/db/local_database.py
 """Local SQLite-backed drive client.
 
-``MSDrive`` previously came from the external ``bifrost`` monorepo
-(``bifrost.auth.drive``), which is no longer available now that biocanvas has
-been extracted into its own repository. This implementation replaces the
-MS Graph-backed SharePoint client with a local SQLite database: one ``.db``
-file per project, storing raw experiment files (``Meta.csv``,
-``Benchling.zip``, ``Eve.zip``/``Pi.zip``) as BLOBs in a simple
-virtual-filesystem table. See ``database-changes.md`` at the repo root for
-the schema and migration notes.
+``LocalDataBase`` supports local SQLite database: one ``.db`` file per 
+project, storing raw experiment files (``Meta.csv``, ``Benchling.zip``, ``Eve.zip``/``Pi.zip``)
+as BLOBs in a simple virtual-filesystem table. See ``database-changes.md``
+at the repo root for the schema and migration notes.
 """
 import os
 import sqlite3
@@ -27,8 +23,8 @@ CREATE INDEX IF NOT EXISTS idx_items_parent_path ON items(parent_path);
 """
 
 
-class MSDrive:
-    """Local SQLite-backed client matching the interface consumed by SharePoint.
+class LocalDataBase:
+    """Local SQLite-backed client matching the interface consumed by LocalDataClient.
 
     Models the raw-file drive as a single ``items`` table: each row is
     either a directory (``is_dir=1``, ``content`` NULL) or a file
@@ -70,7 +66,7 @@ class MSDrive:
             Sorted list of item (file or directory) names. Empty if the
             folder does not exist or has no children.
         """
-        assert self._conn is not None, "MSDrive.connect() must be called first."
+        assert self._conn is not None, "LocalDataBase.connect() must be called first."
         parent_path = folder_path.rstrip('/')
         cursor = self._conn.execute(
             "SELECT name FROM items WHERE parent_path = ? ORDER BY name", (parent_path,)
@@ -89,7 +85,7 @@ class MSDrive:
         Raises:
             FileNotFoundError: If no file exists at ``item_path``.
         """
-        assert self._conn is not None, "MSDrive.connect() must be called first."
+        assert self._conn is not None, "LocalDataBase.connect() must be called first."
         cursor = self._conn.execute(
             "SELECT content FROM items WHERE path = ? AND is_dir = 0", (item_path,)
         )

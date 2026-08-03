@@ -46,7 +46,7 @@ PROJECT_NAME: str = _cfg['project_name']
 PROJECT_VERSION: str = f"{PROJECT_NAME.split()[1].lower()}-v{_cfg['version']}"
 # Path to this project's local SQLite database file. The name is kept as
 # SHAREPOINT_DATA_DIR for interface compatibility with the pre-SQLite
-# SharePoint backend (see biocanvas/utils/drive.py).
+# SharePoint backend (see biocanvas/db/local_database.py).
 SHAREPOINT_DATA_DIR: str = _cfg['sharepoint_data_dir']
 
 # ---------------------------------------------------------------------------
@@ -94,12 +94,9 @@ ENZYME_ASSAYS: Tuple[str, ...] = tuple(_cfg['enzyme_assays'])
 # ---------------------------------------------------------------------------
 CARBON_PANELS: Dict[str, Tuple[str, ...]] = {
     PANEL_DISPLAY_NAMES.get('Sugar', 'Sugar'):    GROWTH_CARB_SUBST + INDUCER_SUBST,
-    PANEL_DISPLAY_NAMES.get('Disacch', 'Disacch'): INDUCER_SUBST,
 }
 
 PANELS_FOR_TRY: Dict[str, Tuple[str, ...]] = {
-    PANEL_DISPLAY_NAMES.get('Alpha', 'Alpha'): PRODUCTS,
-    PANEL_DISPLAY_NAMES.get('Aaa', 'Aaa'):     PRODUCTS,
     PANEL_DISPLAY_NAMES.get('Lcuv', 'Lcuv'):   PRODUCTS,
     PANEL_DISPLAY_NAMES.get('Brad', 'Brad'):    PRODUCTS,
 }
@@ -188,15 +185,6 @@ bench_plot_properties: Dict[str, Dict[str, Dict[str, Any]]] = {
             'col_exist': [0] * len(INDUCER_SUBST),
         },
     },
-    PANEL_DISPLAY_NAMES.get('Disacch', 'Disacch'): {
-        'Inducer Substrate': {
-            'cols': [f'{el} (g/L)' for el in INDUCER_SUBST],
-            'ylabel': _ylabel(INDUCER_SUBST, 'Titer (g/L)'),
-            'xlim': (0, None),
-            'ylim': (0, None),
-            'col_exist': [0] * len(INDUCER_SUBST),
-        },
-    },
     PANEL_DISPLAY_NAMES.get('Acids', 'Acids'): {
         'Byproducts': {
             'cols': [f'{el} (g/L)' for el in BYPRODUCTS],
@@ -229,108 +217,6 @@ bench_plot_properties: Dict[str, Dict[str, Dict[str, Any]]] = {
             'xlim': (0, None),
             'ylim': (0, None),
             'col_exist': [0] * len(GROWTH_SULPH_SUBST),
-        },
-    },
-    PANEL_DISPLAY_NAMES.get('Alpha', 'Alpha'): {
-        'Growth Substrate': {
-            'cols': [f'{el} (g/L)' for el in GROWTH_CARB_SUBST],
-            'ylabel': _ylabel(GROWTH_CARB_SUBST, 'Titer (g/L)'),
-            'xlim': (0, None),
-            'ylim': (0, None),
-            'col_exist': [0] * len(GROWTH_CARB_SUBST),
-        },
-        'Inducer Substrate': {
-            'cols': [f'{el} (g/L)' for el in INDUCER_SUBST],
-            'ylabel': _ylabel(INDUCER_SUBST, 'Titer (g/L)'),
-            'xlim': (0, None),
-            'ylim': (0, None),
-            'col_exist': [0] * len(INDUCER_SUBST),
-        },
-        'Product Titer': {
-            'cols': [f'{el} Titer (g/L)' for el in PRODUCTS],
-            'ylabel': _ylabel(PRODUCTS, 'Titer (g/L)'),
-            'xlim': (0, None),
-            'ylim': (0, None),
-            'col_exist': [0] * len(PRODUCTS),
-        },
-        'Product Sp. Titer': {
-            'cols': [f'{el} Sp. Titer (g/g)' for el in PRODUCTS],
-            'ylabel': _ylabel(PRODUCTS, 'Sp. Titer (g/g)'),
-            'xlim': (0, None),
-            'ylim': (0, None),
-            'col_exist': [0] * len(PRODUCTS),
-        },
-        'Product Rate': {
-            'cols': [f'{el} Rate (g/L/h)' for el in PRODUCTS],
-            'ylabel': _ylabel(PRODUCTS, 'Rate (g/L/h)'),
-            'xlim': (0, None),
-            'ylim': _bench_ylim('Alpha', 'Product Rate'),
-            'col_exist': [0] * len(PRODUCTS),
-        },
-        'Product Ins. Rate': {
-            'cols': [f'{el} Ins. Rate (g/L/h)' for el in PRODUCTS],
-            'ylabel': _ylabel(PRODUCTS, 'Ins. Rate (g/L/h)'),
-            'xlim': (0, None),
-            'ylim': _bench_ylim('Alpha', 'Product Ins. Rate'),
-            'col_exist': [0] * len(PRODUCTS),
-        },
-        'Product Weight': {
-            'cols': [f'{el} Weight (g)' for el in PRODUCTS],
-            'ylabel': _ylabel(PRODUCTS, 'Weight (g)'),
-            'xlim': (0, None),
-            'ylim': (0, None),
-            'col_exist': [0] * len(PRODUCTS),
-        },
-        'Product Yield': {
-            'cols': [f'{el} Yield (g/g)' for el in PRODUCTS],
-            'ylabel': _ylabel(PRODUCTS, 'Yield (g/g)'),
-            'xlim': (0, None),
-            'ylim': _bench_ylim('Alpha', 'Product Yield'),
-            'col_exist': [0] * len(PRODUCTS),
-        },
-    },
-    PANEL_DISPLAY_NAMES.get('Aaa', 'Aaa'): {
-        'Product Titer': {
-            'cols': [f'{el} Titer (g/L)' for el in PRODUCTS],
-            'ylabel': _ylabel(PRODUCTS, 'Titer (g/L)'),
-            'xlim': (0, None),
-            'ylim': (0, None),
-            'col_exist': [0] * len(PRODUCTS),
-        },
-        'Product Sp. Titer': {
-            'cols': [f'{el} Sp. Titer (g/g)' for el in PRODUCTS],
-            'ylabel': _ylabel(PRODUCTS, 'Sp. Titer (g/g)'),
-            'xlim': (0, None),
-            'ylim': (0, None),
-            'col_exist': [0] * len(PRODUCTS),
-        },
-        'Product Rate': {
-            'cols': [f'{el} Rate (g/L/h)' for el in PRODUCTS],
-            'ylabel': _ylabel(PRODUCTS, 'Rate (g/L/h)'),
-            'xlim': (0, None),
-            'ylim': _bench_ylim('Aaa', 'Product Rate'),
-            'col_exist': [0] * len(PRODUCTS),
-        },
-        'Product Ins. Rate': {
-            'cols': [f'{el} Ins. Rate (g/L/h)' for el in PRODUCTS],
-            'ylabel': _ylabel(PRODUCTS, 'Ins. Rate (g/L/h)'),
-            'xlim': (0, None),
-            'ylim': _bench_ylim('Aaa', 'Product Ins. Rate'),
-            'col_exist': [0] * len(PRODUCTS),
-        },
-        'Product Weight': {
-            'cols': [f'{el} Weight (g)' for el in PRODUCTS],
-            'ylabel': _ylabel(PRODUCTS, 'Weight (g)'),
-            'xlim': (0, None),
-            'ylim': (0, None),
-            'col_exist': [0] * len(PRODUCTS),
-        },
-        'Product Yield': {
-            'cols': [f'{el} Yield (g/g)' for el in PRODUCTS],
-            'ylabel': _ylabel(PRODUCTS, 'Yield (g/g)'),
-            'xlim': (0, None),
-            'ylim': _bench_ylim('Aaa', 'Product Yield'),
-            'col_exist': [0] * len(PRODUCTS),
         },
     },
     PANEL_DISPLAY_NAMES.get('Lcuv', 'Lcuv'): {

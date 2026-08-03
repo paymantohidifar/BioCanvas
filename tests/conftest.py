@@ -332,7 +332,7 @@ def raw_bench_table_for_augment() -> pd.DataFrame:
         ('Sugar', 'Glucose (g/L)'):                [20.0, 10.0, 0.0, 0.0,  20.0, 10.0, 0.0, 0.0,  10, 0.0],
         ('Sugar', 'Fructose (g/L)'):               [0.0, 2.0, 0.0, 0.0,  0.0, 2.0, 0.0, 0.0,  0.0, 0.0],
         ('Sugar', 'Lactose (g/L)'):                [0.0, 2.0, 0.0, 0.0,  0.0, 2.0, 0.0, 0.0,  0.0, 0.0],
-        ('Alpha', 'TestProduct (g/L)'):            [0.0, 1.5, 2.5, 3.5,  0.0, 1.5, 2.5, 3.5,  0.0, 1.5],
+        ('Lcuv', 'TestProduct (g/L)'):            [0.0, 1.5, 2.5, 3.5,  0.0, 1.5, 2.5, 3.5,  0.0, 1.5],
     })
 
 
@@ -343,11 +343,11 @@ def augment_config() -> Dict[str, Any]:
     carbon_panels maps the Sugar panel to Glucose, Fructose, and Lactose so that the carbon-balance sum
     produces a zero (the column is absent from the bench fixture, so grp.get()
     returns the zero-series default). panels_for_try exercises _compute_try_kpis
-    via the Alpha panel's TestProduct column in raw_bench_table_for_augment.
+    via the Lcuv panel's TestProduct column in raw_bench_table_for_augment.
     """
     return {
         'carbon_panels': {'Sugar': ['Glucose', 'Fructose', 'Lactose']},
-        'panels_for_try': {'Alpha': ['TestProduct']},
+        'panels_for_try': {'Lcuv': ['TestProduct']},
         'panel_display_names': {'Ferm': 'Growth'},
         'bench_cols_to_keep': [
             'Exp', 'Tank', 'Replicate', 'Time (h)',
@@ -357,12 +357,12 @@ def augment_config() -> Dict[str, Any]:
             ('Sugar', 'Glucose (g/L)'),
             ('Sugar', 'Fructose (g/L)'),
             ('Sugar', 'Lactose (g/L)'),
-            ('Alpha', 'TestProduct Titer (g/L)'),
-            ('Alpha', 'TestProduct Sp. Titer (g/g)'),
-            ('Alpha', 'TestProduct Weight (g)'),
-            ('Alpha', 'TestProduct Yield (g/g)'),
-            ('Alpha', 'TestProduct Rate (g/L/h)'),
-            ('Alpha', 'TestProduct Ins. Rate (g/L/h)'),
+            ('Lcuv', 'TestProduct Titer (g/L)'),
+            ('Lcuv', 'TestProduct Sp. Titer (g/g)'),
+            ('Lcuv', 'TestProduct Weight (g)'),
+            ('Lcuv', 'TestProduct Yield (g/g)'),
+            ('Lcuv', 'TestProduct Rate (g/L/h)'),
+            ('Lcuv', 'TestProduct Ins. Rate (g/L/h)'),
         ],
         'process_cols_to_keep': [
             'Exp', 'Tank', 'Replicate', 'Time (h)',
@@ -528,7 +528,7 @@ def bench_exact_for_augment() -> pd.DataFrame:
         ('Growth', '% Insoluble Solids (g/g)'):     [0.0,    0.0,   0.0,   0.0],
         ('Sugar', 'Glucose (g/L)'):                 [10.0,   5.0,   0.0,   0.0],
         ('Sugar', 'Lactose (g/L)'):                 [2.0,    1.0,   0.0,   0.0],
-        ('Alpha', 'TestProduct (g/L)'):             [0.0,    0.5,   1.0,   1.5],
+        ('Lcuv', 'TestProduct (g/L)'):             [0.0,    0.5,   1.0,   1.5],
     })
 
 
@@ -537,14 +537,14 @@ def augment_config_exact() -> Dict[str, Any]:
     """AugmentTables config for exact-value tests.
 
     Identical panels to ``augment_config`` (Sugar→Glucose/Lactose carbon
-    panel; Alpha→TestProduct TRY panel) but with expanded column-keep lists
+    panel; Lcuv→TestProduct TRY panel) but with expanded column-keep lists
     so that individual pump volumes, sample-tracking columns, broth-volume
     and carbon-balance columns, and all TRY KPI columns are retained in the
     final augmented tables for assertion.
     """
     return {
         'carbon_panels': {'Sugar': ['Glucose', 'Lactose']},
-        'panels_for_try': {'Alpha': ['TestProduct']},
+        'panels_for_try': {'Lcuv': ['TestProduct']},
         'panel_display_names': {'Ferm': 'Growth'},
         'bench_cols_to_keep': [
             'Exp', 'Tank', 'Replicate', 'Time (h)',
@@ -556,12 +556,12 @@ def augment_config_exact() -> Dict[str, Any]:
             ('Growth', 'DCW (g/L)'),
             ('Sugar', 'Glucose (g/L)'),
             ('Sugar', 'Lactose (g/L)'),
-            ('Alpha', 'TestProduct Titer (g/L)'),
-            ('Alpha', 'TestProduct Sp. Titer (g/g)'),
-            ('Alpha', 'TestProduct Weight (g)'),
-            ('Alpha', 'TestProduct Yield (g/g)'),
-            ('Alpha', 'TestProduct Rate (g/L/h)'),
-            ('Alpha', 'TestProduct Ins. Rate (g/L/h)'),
+            ('Lcuv', 'TestProduct Titer (g/L)'),
+            ('Lcuv', 'TestProduct Sp. Titer (g/g)'),
+            ('Lcuv', 'TestProduct Weight (g)'),
+            ('Lcuv', 'TestProduct Yield (g/g)'),
+            ('Lcuv', 'TestProduct Rate (g/L/h)'),
+            ('Lcuv', 'TestProduct Ins. Rate (g/L/h)'),
         ],
         'process_cols_to_keep': [
             'Exp', 'Tank', 'Replicate', 'Time (h)',

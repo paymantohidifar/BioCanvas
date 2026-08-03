@@ -95,7 +95,7 @@ class PDTabWidgets:
     def _build_layout(self) -> widgets.AppLayout:
         return widgets.AppLayout(
             header=widgets.HTML(
-                "<h3>Pull raw data from SharePoint and process it into master tables.</h3>"
+                "<h3>Pull raw data from the local database and process it into master tables.</h3>"
             ),
             center=None,
             left_sidebar=widgets.VBox([
@@ -103,7 +103,7 @@ class PDTabWidgets:
                 self.project_dropdown,
                 self.passcode_box,
                 self.log_level_dropdown,
-                widgets.HTML("<br><b>Step 2:</b> Connect to SharePoint:"),
+                widgets.HTML("<br><b>Step 2:</b> Connect to the local database:"),
                 self.connect_button,
                 widgets.HTML("<br><b>Step 3:</b> Select experiment(s) to process:"),
                 self.select_all_radio_button,

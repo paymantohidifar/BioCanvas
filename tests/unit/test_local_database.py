@@ -1,11 +1,11 @@
-"""Tests for the SQLite-backed biocanvas.utils.drive.MSDrive and biocanvas.utils.io.SharePoint."""
+"""Tests for the SQLite-backed biocanvas.db.local_database.LocalDataBase and biocanvas.utils.io.LocalDataClient."""
 import sqlite3
 from pathlib import Path
 
 import pytest
 
-from biocanvas.utils.drive import MSDrive, _SCHEMA_SQL
-from biocanvas.utils.io import SharePoint
+from biocanvas.db.local_database import LocalDataBase, _SCHEMA_SQL
+from biocanvas.utils.io import LocalDataClient
 
 
 def _build_db(db_path: Path) -> None:
@@ -24,16 +24,16 @@ def _build_db(db_path: Path) -> None:
     conn.close()
 
 
-class TestMSDrive:
+class TestLocalDataBase:
     def test_connect_missing_file_raises(self, tmp_path: Path):
-        drive = MSDrive()
+        drive = LocalDataBase()
         with pytest.raises(FileNotFoundError):
             drive.connect(str(tmp_path / "does_not_exist.db"))
 
     def test_list_items_returns_names(self, tmp_path: Path):
         db_path = tmp_path / "helix.db"
         _build_db(db_path)
-        drive = MSDrive()
+        drive = LocalDataBase()
         drive.connect(str(db_path))
 
         assert drive.list_items("") == ["Exp 001 MyRun"]
@@ -43,7 +43,7 @@ class TestMSDrive:
     def test_list_items_empty_folder_returns_empty_list(self, tmp_path: Path):
         db_path = tmp_path / "helix.db"
         _build_db(db_path)
-        drive = MSDrive()
+        drive = LocalDataBase()
         drive.connect(str(db_path))
 
         assert drive.list_items("Nonexistent Folder") == []
@@ -51,7 +51,7 @@ class TestMSDrive:
     def test_data_content_returns_bytes(self, tmp_path: Path):
         db_path = tmp_path / "helix.db"
         _build_db(db_path)
-        drive = MSDrive()
+        drive = LocalDataBase()
         drive.connect(str(db_path))
 
         assert drive.data_content("Exp 001 MyRun/Meta.csv") == b"meta-content"
@@ -59,7 +59,7 @@ class TestMSDrive:
     def test_data_content_missing_file_raises(self, tmp_path: Path):
         db_path = tmp_path / "helix.db"
         _build_db(db_path)
-        drive = MSDrive()
+        drive = LocalDataBase()
         drive.connect(str(db_path))
 
         with pytest.raises(FileNotFoundError):
@@ -68,7 +68,7 @@ class TestMSDrive:
     def test_connect_reopens_and_closes_prior_connection(self, tmp_path: Path):
         db_path = tmp_path / "helix.db"
         _build_db(db_path)
-        drive = MSDrive()
+        drive = LocalDataBase()
         drive.connect(str(db_path))
         first_conn = drive._conn
         drive.connect(str(db_path))
@@ -78,12 +78,12 @@ class TestMSDrive:
             first_conn.execute("SELECT 1")
 
 
-class TestSharePoint:
+class TestLocalDataClient:
     def test_end_to_end_matches_data_service_call_pattern(self, tmp_path: Path):
         db_path = tmp_path / "helix.db"
         _build_db(db_path)
 
-        sp = SharePoint()
+        sp = LocalDataClient()
         sp.connect("Project Helix", str(db_path))
 
         exp_names = [item for item in sp.get_item_names() if item.lower().startswith('exp')]
@@ -98,7 +98,7 @@ class TestSharePoint:
         db_path = tmp_path / "helix.db"
         _build_db(db_path)
 
-        sp = SharePoint()
+        sp = LocalDataClient()
         sp.connect("Project Helix", str(db_path))
 
         with pytest.raises(FileNotFoundError):
@@ -108,7 +108,7 @@ class TestSharePoint:
         db_path = tmp_path / "helix.db"
         _build_db(db_path)
 
-        sp = SharePoint()
+        sp = LocalDataClient()
         sp.connect("Project Helix", str(db_path))
         sp.get_item_names()
         sp.load_data("Exp 001 MyRun/Meta.csv")

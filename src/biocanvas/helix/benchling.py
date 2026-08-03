@@ -205,21 +205,6 @@ class Sugar(GeneralAnalyteTable):
     """
 
 
-class Disacch(GeneralAnalyteTable):
-    """Processes disaccharide analyte tables exported from Benchling.
-
-    Inherits :meth:`~biocanvas.utils.io.GeneralAnalyteTable.process`
-    and groups columns under the ``Disacch`` outer MultiIndex level.
-
-    Args:
-        zip_ref: Zipped file contents containing the disaccharide panel CSV.
-        file_name: Filename within the zip archive to load.
-
-    Attributes:
-        table: Raw disaccharide table as read from Benchling.
-    """
-
-
 class Acids(GeneralAnalyteTable):
     """Processes organic acid analyte tables exported from Benchling.
 
@@ -262,36 +247,6 @@ class Phs(GeneralAnalyteTable):
 
     Attributes:
         table: Raw phosphate / sulfate table as read from Benchling.
-    """
-
-
-class Alpha(GeneralAnalyteTable):
-    """Processes Alpha assay analyte tables exported from Benchling.
-
-    Inherits :meth:`~biocanvas.utils.io.GeneralAnalyteTable.process`
-    and groups columns under the ``Alpha`` outer MultiIndex level.
-
-    Args:
-        zip_ref: Zipped file contents containing the Alpha panel CSV.
-        file_name: Filename within the zip archive to load.
-
-    Attributes:
-        table: Raw Alpha table as read from Benchling.
-    """
-
-
-class Aaa(GeneralAnalyteTable):
-    """Processes Triple-A (AAA) analyte tables exported from Benchling.
-
-    Inherits :meth:`~biocanvas.utils.io.GeneralAnalyteTable.process`
-    and groups columns under the ``Aaa`` outer MultiIndex level.
-
-    Args:
-        zip_ref: Zipped file contents containing the Triple-A panel CSV.
-        file_name: Filename within the zip archive to load.
-
-    Attributes:
-        table: Raw Triple-A table as read from Benchling.
     """
 
 

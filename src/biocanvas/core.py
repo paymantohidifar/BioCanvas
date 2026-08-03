@@ -33,8 +33,8 @@ class App:
     """GUI for biological experiment data I/O, processing, analysis, and visualization.
 
     Provides an ipywidgets-based notebook interface for transferring biological
-    experiment data between Bifrost-Azure and Microsoft SharePoint, processing
-    raw data into master tables, and generating statistical plots.
+    experiment data from a project's local SQLite database, processing raw
+    data into master tables, and generating statistical plots.
 
     The App is a thin view layer: all data work is delegated to
     :class:`~biocanvas.data_service.DataService`.  Widget
@@ -186,7 +186,7 @@ class App:
             checkbox.value = checked
 
     def _handle_pd_connect_button(self, _: Any) -> None:
-        """Creates result dirs, loads project modules, and lists SharePoint experiments."""
+        """Creates result dirs, loads project modules, and lists local database experiments."""
         # Clear output labels and progress bar
         self.pd.progress_bar_output.clear_output()
         self.pd.output_label.clear_output()
@@ -243,10 +243,10 @@ class App:
 
         Notes:
             Parallel execution via ThreadPoolExecutor was attempted but abandoned.
-            SharePoint enforces per-session connection limits that cause intermittent
-            failures when multiple threads issue concurrent requests.  Sequential
-            processing via DataService is reliable and still benefits from the
-            modular per-experiment helper.
+            The legacy SharePoint backend enforced per-session connection limits
+            that caused intermittent failures when multiple threads issued
+            concurrent requests.  Sequential processing via DataService is
+            reliable and still benefits from the modular per-experiment helper.
         """
         # Clear output labels and progress bar
         self.pd.progress_bar_output.clear_output()

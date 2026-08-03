@@ -1,3 +1,7 @@
+# VS Code
+.vscode/
+*.code-workspace
+
 # pixi environments
 .pixi/*
 !.pixi/config.toml
@@ -9,6 +13,7 @@ __pycache__/
 .pytest_cache/
 
 # misc
-pixi-blog.md
-*.code-workspace
-temp_instructions.md
+docs/
+
+# Claude
+.claude/

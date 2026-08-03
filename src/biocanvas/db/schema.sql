@@ -81,12 +81,12 @@ CREATE TABLE IF NOT EXISTS benchling_sample (
     UNIQUE (experiment_id, sample)
 );
 
--- All non-Sample Benchling panel measurements (Ferm, Sugar, Alpha, ...):
+-- All non-Sample Benchling panel measurements (Ferm, Sugar, Lcuv, ...):
 -- long/EAV so new panels/analytes never require a schema change.
 CREATE TABLE IF NOT EXISTS benchling_measurement (
     measurement_id  INTEGER PRIMARY KEY AUTOINCREMENT,
     sample_id       INTEGER NOT NULL REFERENCES benchling_sample(sample_id) ON DELETE CASCADE,
-    panel           TEXT NOT NULL,             -- 'Ferm', 'Sugar', 'Alpha', ...
+    panel           TEXT NOT NULL,             -- 'Ferm', 'Sugar', 'Lcuv', ...
     metric          TEXT NOT NULL,             -- 'DCW (g/L)', 'Glucose (g/L)', ...
     value           REAL,
     is_std          INTEGER NOT NULL DEFAULT 0, -- 1 for the '_std' companion value

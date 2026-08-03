@@ -56,7 +56,7 @@ class DataService:
         self.figs_dir: str = ""
 
         # Local SQLite-backed drive client
-        self.sharepoint = utils_io.SharePoint()
+        self.local_client = utils_io.LocalDataClient()
 
         # Master data tables
         self.master_meta_table: pd.DataFrame = pd.DataFrame()
@@ -172,11 +172,11 @@ class DataService:
                 "Connecting to local database for project '%s'",
                 self.config_module.PROJECT_NAME,  # type: ignore
             )
-            self.sharepoint.connect(
+            self.local_client.connect(
                 self.config_module.PROJECT_NAME,  # type: ignore
                 self.config_module.SHAREPOINT_DATA_DIR,  # type: ignore
             )
-            items = self.sharepoint.get_item_names()
+            items = self.local_client.get_item_names()
             exp_names = [item for item in items if item.lower().startswith('exp')]
             logger.info("Found %d experiment(s) in the local database", len(exp_names))
             if not exp_names:
@@ -195,7 +195,7 @@ class DataService:
     def process_single_experiment(
         self, exp_name: str
     ) -> Tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, List[helpers.LogEntry]]:
-        """Loads and processes all data files for one experiment from SharePoint.
+        """Loads and processes all data files for one experiment from the local database.
 
         Contains no widget reads or writes; safe to call from any context.
 
@@ -210,7 +210,7 @@ class DataService:
 
         try:
             # --- Meta.csv ---
-            meta_file_loaded = self.sharepoint.load_data(exp_name + '/Meta.csv')
+            meta_file_loaded = self.local_client.load_data(exp_name + '/Meta.csv')
             logger.info("Loaded Meta.csv for '%s'", exp_name)
             meta_table, meta_msgs = self._process_meta_file(
                 io.StringIO(meta_file_loaded.decode('utf-8')), exp_name
@@ -222,7 +222,7 @@ class DataService:
 
             # --- Benchling.zip ---
             try:
-                bench_zip_loaded = self.sharepoint.load_data(exp_name + '/Benchling.zip')
+                bench_zip_loaded = self.local_client.load_data(exp_name + '/Benchling.zip')
                 logger.info("Loaded Benchling.zip for '%s'", exp_name)
                 consolidated_bench_table, bench_msgs = self._process_benchling_files(
                     io.BytesIO(bench_zip_loaded), meta_table
@@ -248,16 +248,16 @@ class DataService:
                 process_zip_loaded: Optional[bytes] = None
                 for candidate, panel in utils_io.resolve_process_zip_candidates():
                     try:
-                        process_zip_loaded = self.sharepoint.load_data(exp_name + f'/{candidate}')
+                        process_zip_loaded = self.local_client.load_data(exp_name + f'/{candidate}')
                         process_file = candidate
                         process_panel = panel
                         break
                     except FileNotFoundError:
                         pass
                 if process_file is None or process_panel is None or process_zip_loaded is None:
-                    filenames = self.sharepoint.get_item_names(exp_name + '/')
+                    filenames = self.local_client.get_item_names(exp_name + '/')
                     process_file, process_panel = utils_io.detect_process_file_type(filenames)
-                    process_zip_loaded = self.sharepoint.load_data(exp_name + f'/{process_file}')
+                    process_zip_loaded = self.local_client.load_data(exp_name + f'/{process_file}')
                 logger.info("Loaded %s for '%s'", process_file, exp_name)
                 consolidated_process_table, process_msgs = self._process_ferm_process_panels(
                     io.BytesIO(process_zip_loaded), meta_table, process_panel
@@ -859,7 +859,7 @@ class AugmentTables:
             carbon_panels: Maps panel display names to the analyte names used for carbon
                 accounting, e.g. ``{'Sugar': ['Glucose', 'Lactose']}``.
             panels_for_try: Maps panel display names to the product names for which TRY
-                KPIs are calculated, e.g. ``{'Alpha': ['Total Protein']}``.
+                KPIs are calculated, e.g. ``{'Lcuv': ['Total Protein']}``.
             bench_cols_to_keep: Ordered list of Benchling columns to retain in the final
                 bench table.  Columns absent from the augmented table are silently skipped.
             process_cols_to_keep: Ordered list of process columns to retain in the final
@@ -942,7 +942,7 @@ class AugmentTables:
             carbon_panels: Maps panel display names to the analyte names used for carbon
                 accounting, e.g. ``{'Sugar': ['Glucose', 'Lactose']}``.
             panels_for_try: Maps panel display names to the product names for which TRY
-                KPIs are calculated, e.g. ``{'Alpha': ['Total Protein']}``.
+                KPIs are calculated, e.g. ``{'Lcuv': ['Total Protein']}``.
             panel_display_names: Maps raw Benchling class names to display names
                 (e.g. ``{'Ferm': 'Growth'}``).  Used to look up the Ferm-panel DCW and
                 Insoluble Solids columns required for TRY KPI corrections.
@@ -1127,7 +1127,7 @@ class AugmentTables:
             grp: Benchling table slice for a single tank, produced by
                 ``groupby('Tank').apply(...)``.
             panels_for_try: Maps panel display names to the product names for which TRY
-                KPIs are calculated, e.g. ``{'Alpha': ['Total Protein']}``.
+                KPIs are calculated, e.g. ``{'Lcuv': ['Total Protein']}``.
             panel_display_names: Maps raw Benchling class names to display names
                 (e.g. ``{'Ferm': 'Growth'}``).  Forwarded to :meth:`_compute_try_kpis`
                 to resolve the Ferm-panel DCW and Insoluble Solids columns.
@@ -1197,7 +1197,7 @@ class AugmentTables:
         Args:
             grp: Benchling table slice for a single tank.
             panels_for_try: Maps panel display names to the product names for which TRY
-                KPIs are calculated, e.g. ``{'Alpha': ['Total Protein']}``.
+                KPIs are calculated, e.g. ``{'Lcuv': ['Total Protein']}``.
             panel_display_names: Maps raw Benchling class names to display names
                 (e.g. ``{'Ferm': 'Growth'}``).  Used to resolve the Ferm-panel
                 ``'% Insoluble Solids (g/g)'`` and ``'DCW (g/L)'`` columns.

@@ -1,5 +1,5 @@
 # biocanvas/utils/io.py
-"""File I/O utilities: directories, module loading, table classes, reports, ZIP, and SharePoint."""
+"""File I/O utilities: directories, module loading, table classes, reports, ZIP, and local data client."""
 import os
 import shutil
 import base64
@@ -9,7 +9,7 @@ from zipfile import ZipFile, ZIP_DEFLATED
 from datetime import datetime
 from typing import Dict, List, Optional, Tuple  # type: ignore
 import logging
-from biocanvas.utils.drive import MSDrive
+from biocanvas.db.local_database import LocalDataBase
 from biocanvas.utils import helpers
 
 logger = logging.getLogger(__name__)
@@ -56,7 +56,7 @@ def detect_process_file_type(filenames: List[str]) -> Tuple[str, str]:
     """Determines whether an experiment uses Eve or Pi fermentation process files.
 
     Args:
-        filenames: List of filenames present in the experiment's SharePoint directory.
+        filenames: List of filenames present in the experiment's local data directory.
 
     Returns:
         A (process_filename, process_panel_classname) tuple,
@@ -456,21 +456,21 @@ class GeneralAnalyteTable(GeneralTable):
         return df
 
 
-class SharePoint:
+class LocalDataClient:
     """A class for interacting with a project's local SQLite-backed drive.
 
     Previously backed by SharePoint/Microsoft Drive via an MS Graph client;
-    now backed by :class:`~biocanvas.utils.drive.MSDrive`, a local SQLite
-    database (one file per project). The public interface (``connect``,
-    ``get_item_names``, ``load_data``) is unchanged so callers do not need
-    to know the storage backend.
+    now backed by :class:`~biocanvas.db.local_database.LocalDataBase`, a
+    local SQLite database (one file per project). The public interface
+    (``connect``, ``get_item_names``, ``load_data``) is unchanged so callers
+    do not need to know the storage backend.
 
     Attributes:
-        drive: MSDrive instance for local database interactions.
+        drive: LocalDataBase instance for local database interactions.
         data_dir: Filesystem path to the project's SQLite ``.db`` file.
     """
     def __init__(self):
-        self.drive = MSDrive()
+        self.drive = LocalDataBase()
         self.data_dir = ""
         self._data_cache: Dict[str, bytes] = {}
         self._list_cache: Dict[str, List[str]] = {}

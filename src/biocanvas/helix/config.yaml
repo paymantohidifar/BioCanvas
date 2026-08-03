@@ -33,12 +33,9 @@ benchling_panels:
   - Sample
   - Ferm
   - Sugar
-  - Disacch
   - Acids
   - Ammonia
   - Phs
-  - Alpha
-  - Aaa
   - Lcuv
   - Brad
   - Biochem
@@ -144,12 +141,9 @@ panel_display_names:
   Sample:           Sample
   Ferm:             Growth
   Sugar:            Sugar
-  Disacch:          Disaccharide
   Acids:            Organic Acids
   Ammonia:          Ammonia
   Phs:              Phosphate-Sulfate
-  Alpha:            Alpha
-  Aaa:              Triple-A
   Lcuv:             LC-UV
   Brad:             Bradford
   Biochem:          Biochem Assays
@@ -160,14 +154,6 @@ panel_display_names:
 # Any panel or KPI group not listed here defaults to ylim: [0, null].
 # ---------------------------------------------------------------------------
 bench_ylims:
-  Alpha:
-    Product Rate:      [0, 0.5]
-    Product Ins. Rate: [0, 1.0]
-    Product Yield:      [0, 0.5]
-  Aaa:
-    Product Rate:      [0, 0.5]
-    Product Ins. Rate: [0, 1.0]
-    Product Yield:      [0, 0.5]
   Lcuv:
     Product Rate:      [0, 0.5]
     Product Ins. Rate: [0, 1.0]
