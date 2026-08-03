@@ -68,7 +68,6 @@ enzyme_assays: ['pnpG', pnpC, CMC]
 global_filter_keys:
   - Run
   - Exp
-  - Tank Status
   - Platform
   - Strain
   - Media
@@ -81,7 +80,6 @@ global_filter_keys:
 
 global_group_keys:
   - Run
-  - Tank Status
   - Platform
   - Strain
   - Media

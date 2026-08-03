@@ -75,6 +75,7 @@ class PDTabWidgets:
         self.generate_tables_checkbox = widgets.Checkbox(
             value=False,
             description='<span style="color: #666;">Save processed data tables</span>',
+            description_allow_html=True,
             indent=False,
             layout=widgets.Layout(width='auto'),
         )
@@ -139,6 +140,7 @@ class QCTabWidgets:
         self.savefig_checkbox = widgets.Checkbox(
             value=False,
             description='<span style="color: #666;">Save plots</span>',
+            description_allow_html=True,
             disabled=True, indent=False,
             layout=widgets.Layout(width='auto'),
         )
@@ -222,16 +224,19 @@ class OLTabWidgets:
         self.verbose_data_checkbox = widgets.Checkbox(
             value=False,
             description='<span style="color: #666;">Show raw data table</span>',
+            description_allow_html=True,
             disabled=True, indent=False, layout=widgets.Layout(width='auto'),
         )
         self.verbose_stats_checkbox = widgets.Checkbox(
             value=False,
             description='<span style="color: #666;">Show statistics tables</span>',
+            description_allow_html=True,
             disabled=True, indent=False, layout=widgets.Layout(width='auto'),
         )
         self.savefig_stats_checkbox = widgets.Checkbox(
             value=False,
             description='<span style="color: #666;">Save plot and raw data table</span>',
+            description_allow_html=True,
             disabled=True, indent=False, layout=widgets.Layout(width='auto'),
         )
         self.plot_button = widgets.Button(
@@ -257,9 +262,7 @@ class OLTabWidgets:
                 self.exp_dropdown,
                 widgets.HTML("<br><b>Step 2: </b> Pick a condition:"),
                 self.condition_dropdown,
-                widgets.HTML(
-                    "<br><b>Step 3: </b> Pick replicates/tanks for selected condition:"
-                ),
+                widgets.HTML("<br><b>Step 3: </b> Pick replicate tanks:"),
                 widgets.HBox(
                     children=[
                         widgets.HTML('Replicate/Tank:'),
@@ -322,16 +325,19 @@ class CCTabWidgets:
         self.stacked_plot_checkbox = widgets.Checkbox(
             value=False,
             description='<span style="color: #666;">Stack Y-axis on barplot</span>',
+            description_allow_html=True,
             disabled=True, indent=False, layout=widgets.Layout(width='auto'),
         )
         self.verbose_data_checkbox = widgets.Checkbox(
             value=False,
             description='<span style="color: #666;">Show raw data table</span>',
+            description_allow_html=True,
             disabled=True, indent=False, layout=widgets.Layout(width='auto'),
         )
         self.verbose_stats_checkbox = widgets.Checkbox(
             value=False,
             description='<span style="color: #666;">Show statistics tables</span>',
+            description_allow_html=True,
             disabled=True, indent=False, layout=widgets.Layout(width='auto'),
         )
         self.savefig_stats_checkbox = widgets.Checkbox(
@@ -340,6 +346,7 @@ class CCTabWidgets:
                 '<span style="color: #666;">'
                 'Save plot, raw data, and statistics tables</span>'
             ),
+            description_allow_html=True,
             disabled=True, indent=False, layout=widgets.Layout(width='auto'),
         )
         self.plot_button = widgets.Button(
@@ -440,16 +447,19 @@ class GCTabWidgets:
         self.stacked_plot_checkbox = widgets.Checkbox(
             value=False,
             description='<span style="color: #666;">Stack Y-axis on barplot</span>',
+            description_allow_html=True,
             disabled=True, indent=False, layout=widgets.Layout(width='auto'),
         )
         self.verbose_data_checkbox = widgets.Checkbox(
             value=False,
             description='<span style="color: #666;">Show raw data table</span>',
+            description_allow_html=True,
             disabled=True, indent=False, layout=widgets.Layout(width='auto'),
         )
         self.verbose_stats_checkbox = widgets.Checkbox(
             value=False,
             description='<span style="color: #666;">Show statistics tables</span>',
+            description_allow_html=True,
             disabled=True, indent=False, layout=widgets.Layout(width='auto'),
         )
         self.savefig_stats_checkbox = widgets.Checkbox(
@@ -458,6 +468,7 @@ class GCTabWidgets:
                 '<span style="color: #666;">'
                 'Save plot, raw data, and statistics tables</span>'
             ),
+            description_allow_html=True,
             disabled=True, indent=False, layout=widgets.Layout(width='auto'),
         )
         self.fig_placeholder = widgets.Output(

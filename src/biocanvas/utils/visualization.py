@@ -596,7 +596,11 @@ class OLPlotter:
         ax.set(xlim=x_lim, ylim=y_lim)  # type: ignore
         ax.xaxis.grid(True)  # type: ignore
         ax.yaxis.grid(True)  # type: ignore
-        ax.legend(fontsize=12, loc='best')  # type: ignore
+        # Only the 'individual' branch above creates a hue-based legend
+        # ('aggregate' explicitly passes legend=False to scatterplot); calling
+        # ax.legend() unconditionally would warn about a labelless legend.
+        if plot_type == 'individual':
+            ax.legend(fontsize=12, loc='best')  # type: ignore
 
 
 class CCPlotResult(NamedTuple):

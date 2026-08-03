@@ -11,6 +11,7 @@ import io
 import gc
 import copy
 import logging
+import warnings
 from datetime import datetime
 from pathlib import Path
 from zipfile import ZipFile
@@ -951,9 +952,15 @@ class AugmentTables:
             # If the bench table is not empty, augment it with the 'Exp' key column and apply _add_key_cols_to_bench per-tank group
             if not self.augmented_bench_table.empty:
                 self.augmented_bench_table['Exp'] = self.augmented_meta_table.loc[0, 'Exp'] # type: ignore
-                self.augmented_bench_table = self.augmented_bench_table.groupby('Tank', group_keys=False).apply( # type: ignore
-                    self._add_key_cols_to_bench, panels_for_try, panel_display_names, carbon_panels
-                )
+                # augmented_bench_table's columns mix MultiIndex tuples (panel, analyte)
+                # with flat labels ('Tank', 'Exp'), so pandas can't lexsort them; the
+                # resulting PerformanceWarning on the grouping-column drop below is
+                # informational only and safe to suppress.
+                with warnings.catch_warnings():
+                    warnings.filterwarnings('ignore', category=pd.errors.PerformanceWarning)
+                    self.augmented_bench_table = self.augmented_bench_table.groupby('Tank', group_keys=False).apply( # type: ignore
+                        self._add_key_cols_to_bench, panels_for_try, panel_display_names, carbon_panels
+                    )
                 self.output_messages.append("Successfully augmented Benchling result table.")
                 logger.info("Successfully augmented Benchling result table.")
             else:

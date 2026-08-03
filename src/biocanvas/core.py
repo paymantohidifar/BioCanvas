@@ -286,12 +286,28 @@ class App:
     # Tab-activation helpers
     # ------------------------------------------------------------------
 
+    @staticmethod
+    def _set_dropdown_options(dropdown: widgets.Dropdown, options: List[Any]) -> None:
+        """Sets a Dropdown's options and selects the first one by default.
+
+        Reassigning ``.options`` on an existing Dropdown does not, by itself,
+        update ``.value`` (unlike passing ``options`` at construction time),
+        so the widget is left showing a blank selection. This selects
+        ``options[0]`` explicitly, or ``None`` when *options* is empty.
+
+        Args:
+            dropdown: The Dropdown widget to update.
+            options: New list of options for the dropdown.
+        """
+        dropdown.options = options
+        dropdown.value = options[0] if len(options) else None
+
     def _activate_qc_tab(self) -> None:
         """Enables all QC Plots tab widgets and populates the experiment dropdown."""
         self.qc.exp_dropdown.disabled = False
-        self.qc.exp_dropdown.options = list(
+        self._set_dropdown_options(self.qc.exp_dropdown, list(
             self.service.master_meta_table.index.get_level_values('Exp').unique()  # type: ignore
-        )
+        ))
         self.qc.condition_dropdown.disabled = False
         self.qc.plot_button.disabled = False
         self.qc.savefig_checkbox.disabled = False
@@ -299,9 +315,9 @@ class App:
     def _activate_ol_tab(self) -> None:
         """Enables all KPI Overlap tab widgets and populates the experiment dropdown."""
         self.ol.exp_dropdown.disabled = False
-        self.ol.exp_dropdown.options = list(
+        self._set_dropdown_options(self.ol.exp_dropdown, list(
             self.service.master_meta_table.index.get_level_values('Exp').unique()  # type: ignore
-        )
+        ))
         self.ol.condition_dropdown.disabled = False
         self.ol.rep1_checkbox.disabled = False
         self.ol.rep2_checkbox.disabled = False
@@ -318,9 +334,9 @@ class App:
     def _activate_cc_tab(self) -> None:
         """Enables all Condition Comparison tab widgets and populates dropdowns."""
         self.cc.exp_dropdown.disabled = False
-        self.cc.exp_dropdown.options = list(
+        self._set_dropdown_options(self.cc.exp_dropdown, list(
             self.service.master_meta_table.index.get_level_values('Exp').unique()  # type: ignore
-        )
+        ))
         self.cc.kpi_group_dropdown.disabled = False
         self.cc.kpi_value_dropdown.disabled = False
         self.cc.sample_time_dropdown.disabled = False
@@ -344,10 +360,10 @@ class App:
             f'{panel} | {kpi}' for panel, kpis in self.service.process_plot_properties.items()
             for kpi, content in kpis.items() if sum(content['col_exist'])
         ]
-        self.gc.kpi_group_dropdown.options = bench_kpi_li + process_kpi_li
-        self.gc.first_grping_param_dropdown.options = (
+        self._set_dropdown_options(self.gc.kpi_group_dropdown, bench_kpi_li + process_kpi_li)
+        self._set_dropdown_options(self.gc.first_grping_param_dropdown, list(
             self.service.config_module.GLOBAL_GROUP_KEYS  # type: ignore
-        )
+        ))
 
     # ------------------------------------------------------------------
     # QC Plots tab — observers and handlers
@@ -357,9 +373,9 @@ class App:
         """Updates the Condition dropdown when the experiment selection changes."""
         conditions: List[str] = self.service.master_meta_table.loc[  # type: ignore
             self.qc.exp_dropdown.value, 'Condition'].unique()  # type: ignore
-        self.qc.condition_dropdown.options = [
+        self._set_dropdown_options(self.qc.condition_dropdown, [
             c for c in conditions if not c.lower().startswith('seed')  # type: ignore
-        ]
+        ])
 
     def _handle_qc_plot_button(self, _: Any) -> None:
         """Generates QC plots for the selected experiment and condition."""
@@ -473,9 +489,9 @@ class App:
         """Updates the Condition dropdown when the experiment selection changes."""
         conditions: List[str] = self.service.master_meta_table.loc[  # type: ignore
             self.ol.exp_dropdown.value, 'Condition'].unique()
-        self.ol.condition_dropdown.options = [
+        self._set_dropdown_options(self.ol.condition_dropdown, [
             c for c in conditions if not c.lower().startswith('seed')  # type: ignore
-        ]
+        ])
 
     def _ol_condition_dropdown_on_change(self, change: Dict[str, Any]) -> None:
         """Refreshes KPI dropdowns for the selected experiment and condition."""
@@ -495,8 +511,8 @@ class App:
             for kpi, content in kpis.items() if sum(content['col_exist'])
         ]
         kpi_li = bench_kpi_li + process_kpi_li
-        self.ol.kpi1_group_dropdown.options = kpi_li
-        self.ol.kpi2_group_dropdown.options = kpi_li
+        self._set_dropdown_options(self.ol.kpi1_group_dropdown, kpi_li)
+        self._set_dropdown_options(self.ol.kpi2_group_dropdown, kpi_li)
 
     def _ol_kpi1_group_dropdown_on_change(self, change: Dict[str, Any]) -> None:
         """Updates the KPI 1 value dropdown when the KPI 1 group selection changes."""
@@ -513,7 +529,7 @@ class App:
                 if self.service.process_plot_properties[panel][kpi]['col_exist'][idx]
             ]
 
-        self.ol.kpi1_value_dropdown.options = kpi_values
+        self._set_dropdown_options(self.ol.kpi1_value_dropdown, kpi_values)
 
     def _ol_kpi2_group_dropdown_on_change(self, change: Dict[str, Any]) -> None:
         """Updates the KPI 2 value dropdown when the KPI 2 group selection changes."""
@@ -530,7 +546,10 @@ class App:
                 if self.service.process_plot_properties[panel][kpi]['col_exist'][idx]
             ]
 
-        self.ol.kpi2_value_dropdown.options = (kpi_values if len(kpi_values) <= 1 else kpi_values + ['All'])
+        self._set_dropdown_options(
+            self.ol.kpi2_value_dropdown,
+            kpi_values if len(kpi_values) <= 1 else kpi_values + ['All'],
+        )
 
     def _handle_ol_plot_button(self, _: Any) -> None:
         """Generates the overlapped-line KPI comparison plot."""
@@ -682,12 +701,14 @@ class App:
             new_condition_checkbox = widgets.Checkbox(
                 value=False,
                 description=f'Condition {condition_info[0]}: <i>{condition_info[1]}</i>',
+                description_allow_html=True,
                 indent=False,
                 layout=widgets.Layout(width='auto', padding='10px'),
             )
             cc_rep1_checkbox = widgets.Checkbox(
                 value=False,
                 description='<i>One</i>',
+                description_allow_html=True,
                 disabled=False,
                 indent=False,
                 layout=widgets.Layout(width='auto', padding='1px'),
@@ -695,6 +716,7 @@ class App:
             cc_rep2_checkbox = widgets.Checkbox(
                 value=False,
                 description='<i>Two</i>',
+                description_allow_html=True,
                 disabled=False,
                 indent=False,
                 layout=widgets.Layout(width='auto', padding='1px'),
@@ -702,6 +724,7 @@ class App:
             cc_rep3_checkbox = widgets.Checkbox(
                 value=False,
                 description='<i>Three</i>',
+                description_allow_html=True,
                 disabled=False,
                 indent=False,
                 layout=widgets.Layout(width='auto', padding='1px'),
@@ -744,18 +767,20 @@ class App:
             f'{panel} | {kpi}' for panel, kpis in self.service.process_plot_properties.items()
             for kpi, content in kpis.items() if sum(content['col_exist'])
         ]
-        self.cc.kpi_group_dropdown.options = bench_kpi_li + process_kpi_li
+        self._set_dropdown_options(self.cc.kpi_group_dropdown, bench_kpi_li + process_kpi_li)
 
         if (bench_table is not None) and (not bench_table.empty):  # type: ignore
-            self.cc.sample_time_dropdown.options = (
+            self._set_dropdown_options(self.cc.sample_time_dropdown, (
                 list(bench_table[('Time (h)', '')].unique()) + ['All']  # type: ignore
-            )
+            ))
         else:
             if (process_table is not None) and (not process_table.empty):  # type: ignore
                 max_process_time = int(max(process_table[('Time (h)', '')].values))  # type: ignore
-                self.cc.sample_time_dropdown.options = (list(range(0, max_process_time + 1)) + ['All'])
+                self._set_dropdown_options(
+                    self.cc.sample_time_dropdown, list(range(0, max_process_time + 1)) + ['All']
+                )
             else:
-                self.cc.sample_time_dropdown.options = []
+                self._set_dropdown_options(self.cc.sample_time_dropdown, [])
 
     def _cc_kpi_group_dropdown_on_change(self, change: Dict[str, Any]) -> None:
         """Updates the KPI value dropdown when the KPI group selection changes."""
@@ -774,7 +799,10 @@ class App:
                 if self.service.process_plot_properties[panel][kpi]['col_exist'][idx]
             ]
 
-        self.cc.kpi_value_dropdown.options = (kpi_values if len(kpi_values) <= 1 else kpi_values + ['All'])
+        self._set_dropdown_options(
+            self.cc.kpi_value_dropdown,
+            kpi_values if len(kpi_values) <= 1 else kpi_values + ['All'],
+        )
         logger.debug("CC plot: kpi_value_dropdown options=%s", self.cc.kpi_value_dropdown.options)
 
     def _handle_cc_plot_button(self, _: Any) -> None:
@@ -990,7 +1018,6 @@ class App:
             for filter_num, filter_key in enumerate( # type: ignore
                 self.service.config_module.GLOBAL_FILTER_KEYS # type: ignore
             ):
-                self.gc.filter_accordion.set_title(filter_num, filter_key)
                 self.gc.filter_accordion.children += (
                     widgets.SelectMultiple(
                         options=[],
@@ -1002,6 +1029,7 @@ class App:
                         },
                     ),
                 )
+                self.gc.filter_accordion.set_title(filter_num, filter_key)
 
     def _gc_add_filters(self) -> None:
         """Populates each GC filter accordion panel with selectable options."""
@@ -1054,14 +1082,17 @@ class App:
                 if self.service.process_plot_properties[panel][kpi_group]['col_exist'][idx]
             ]
 
-        self.gc.kpi_value_dropdown.options = (kpi_values if len(kpi_values) <= 1 else kpi_values + ['All'])
+        self._set_dropdown_options(
+            self.gc.kpi_value_dropdown,
+            kpi_values if len(kpi_values) <= 1 else kpi_values + ['All'],
+        )
 
     def _gc_first_grping_param_dropdown_on_change(self, change: Dict[str, str]) -> None:
         """Updates the second grouping dropdown and exposes Lineplot when Time is on X-axis."""
         local_group_keys: List[str] = list(self.service.config_module.GLOBAL_GROUP_KEYS  # type: ignore
                                            )
         local_group_keys.remove(change['new'])
-        self.gc.second_grping_param_dropdown.options = ['---'] + local_group_keys
+        self._set_dropdown_options(self.gc.second_grping_param_dropdown, ['---'] + local_group_keys)
 
         if change['new'] == 'Time (h)':
             self.gc.plot_type_radio_button.options = ['Barplot', 'Boxplot', 'Lineplot']
