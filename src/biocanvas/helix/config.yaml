@@ -1,0 +1,180 @@
+# config.yaml — Project Helix
+# User-editable configuration values.
+# Edit this file to change project settings, substrates, panels, and plot limits.
+# After editing, reload the kernel so the changes take effect.
+#
+# How derived column names are built (read-only context for reference):
+#   Growth substrate columns : "{substrate} (g/L)"
+#   Inducer substrate columns: "{inducer} (g/L)"
+#   Product columns          : "{product} Titer/Sp. Titer/Rate/Ins. Rate/Weight/Yield (units)"
+#   Enzyme assay columns     : "{assay} Activity (umoles/g/s)"
+
+# ---------------------------------------------------------------------------
+# Environment variables recognised by the biocanvas package
+# ---------------------------------------------------------------------------
+# BIOCANVAS_PROFILE  — set to any non-empty value to enable cProfile on methods
+#                     decorated with @helpers.profile_method.  Unset = no-op.
+
+# ---------------------------------------------------------------------------
+# Project identity
+# ---------------------------------------------------------------------------
+project_name: "Project Helix"
+version: "0.1.0"
+# Path to this project's local SQLite database file (raw experiment files
+# stored as BLOBs — see database-changes.md). Kept under the
+# `sharepoint_data_dir` key for interface compatibility with the pre-SQLite
+# SharePoint backend.
+sharepoint_data_dir: "helix/helix.db"
+
+# ---------------------------------------------------------------------------
+# Benchling assay panels (order matters — first panel is the Sample sheet)
+# ---------------------------------------------------------------------------
+benchling_panels:
+  - Sample
+  - Ferm
+  - Sugar
+  - Acids
+  - Ammonia
+  - Phs
+  - Lcuv
+  - Brad
+  - Biochem
+
+# ---------------------------------------------------------------------------
+# Substrates
+# ---------------------------------------------------------------------------
+growth_carb_subst:   [Glucose]
+growth_nitro_subst:  [Ammonia, Urea]
+growth_phosph_subst: [Phosphate]
+growth_sulph_subst:  [Sulfate]
+
+inducer_subst: [Lactose, Sophorose, Gentiobiose, Cellobiose, Laminaribiose]
+
+# ---------------------------------------------------------------------------
+# Metabolites
+# ---------------------------------------------------------------------------
+byproducts:    [Acetate, Formate, Lactate, Pyruvate, Gluconate]
+intermediates: []
+products:      [Total Protein]
+
+# ---------------------------------------------------------------------------
+# Enzyme activity assays
+# ---------------------------------------------------------------------------
+enzyme_assays: ['pnpG', pnpC, CMC]
+
+# ---------------------------------------------------------------------------
+# Global comparison plot keys
+# ---------------------------------------------------------------------------
+global_filter_keys:
+  - Run
+  - Exp
+  - Platform
+  - Strain
+  - Media
+  - Feed Source
+  - Manual Target Feed Rate (ml/h)
+  - pH Setpoint
+  - "Temp (°C) Setpoint"
+  - DO (%) Setpoint
+  - Time (h)
+
+global_group_keys:
+  - Run
+  - Platform
+  - Strain
+  - Media
+  - Feed Source
+  - Manual Target Feed Rate (ml/h)
+  - pH Setpoint
+  - "Temp (°C) Setpoint"
+  - DO (%) Setpoint
+  - Time (h)
+
+# ---------------------------------------------------------------------------
+# Final processed table columns
+# ---------------------------------------------------------------------------
+final_process_cols:
+  - Exp
+  - Tank
+  - Replicate
+  - Time (h)
+  - "Temperature (°C)"
+  - pH
+  - Pressure (bar)
+  - Stirrer (rpm)
+  - DO (%)
+  - OUR (mmol/h)
+  - CER (mmol/h)
+  - RQ
+  - Mass Balance (%)
+  - OURT (g)
+  - CERT (g)
+  - Removed Sample Vol (ml)
+  - Removed Sample Weight (g)
+  - Combined Feeds Weight (g)
+  - Added Carbon Weight (g)
+  - Pumped Feed Vol (ml)
+  - Pumped Co-feed Vol (ml)
+  - Pumped Bolus Vol (ml)
+  - Pumped Acid Vol (ml)
+  - Pumped Base Vol (ml)
+  - Inlet O2 Flow (ml/min)
+  - Inlet GM Flow (ml/min)
+  - Inlet Air Flow (ml/min)
+  - Oulet Flow O2 (%)
+  - Oulet Flow CO2 (%)
+  - Outlet Flow N2 (%)
+
+# ---------------------------------------------------------------------------
+# Panel display names
+# Maps each class name in benchling.py (= raw panel name from filename) to a
+# human-readable label used in bench_plot_properties, CARBON_PANELS, and
+# PANELS_FOR_TRY.  bench_ylims keys are NOT affected — they still use class names.
+# Sample MUST keep the same name as its key (Sample: Sample).  Any other value
+# would trigger the MultiIndex rename in core.py, replacing the ('Tank', ''),
+# ('Time (h)', '') outer levels with a single label and breaking Tank-based
+# filtering.  All other panels may use any display name freely.
+# ---------------------------------------------------------------------------
+panel_display_names:
+  Sample:           Sample
+  Ferm:             Growth
+  Sugar:            Sugar
+  Acids:            Organic Acids
+  Ammonia:          Ammonia
+  Phs:              Phosphate-Sulfate
+  Lcuv:             LC-UV
+  Brad:             Bradford
+  Biochem:          Biochem Assays
+
+# ---------------------------------------------------------------------------
+# Y-axis limits for bench_plot_properties
+# Only panels / KPI groups that need a non-default (0, None) limit are listed.
+# Any panel or KPI group not listed here defaults to ylim: [0, null].
+# ---------------------------------------------------------------------------
+bench_ylims:
+  Lcuv:
+    Product Rate:      [0, 0.5]
+    Product Ins. Rate: [0, 1.0]
+    Product Yield:      [0, 0.5]
+  Brad:
+    Product Rate:      [0, 0.5]
+    Product Ins. Rate: [0, 1.0]
+    Product Yield:      [0, 0.5]
+
+# ---------------------------------------------------------------------------
+# Y-axis limits for process_plot_properties
+# Only KPI groups that need a non-default (0, None) limit are listed.
+# ---------------------------------------------------------------------------
+process_ylims:
+  Temperature:             [0, 40]
+  Respiratory Quotient:    [0, 2.0]
+  High-level Mass Balance: [0, 150]
+
+# ---------------------------------------------------------------------------
+# Significance test configuration
+# ---------------------------------------------------------------------------
+significance_test_config:
+  alpha: 0.05 # Significance level for the significance test
+  shapiro_threshold: 0.05 # Threshold for the Shapiro-Wilk normality test
+  min_sample_size_for_tests: 3 # Minimum sample size for the tests
+  

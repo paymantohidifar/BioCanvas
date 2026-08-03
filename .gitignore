@@ -1,13 +1,35 @@
+# VS Code
+.vscode/
+*.code-workspace
+
 # pixi environments
 .pixi/*
 !.pixi/config.toml
 
+# Virtual environments
+.venv/*
+
 # python
 __pycache__/
 
-# pytest
-.pytest_cache/
+# Jupyter
+.ipynb_checkpoints/
 
+# pytest and ruff
+.pytest_cache/
+.ruff_cache/
 
 # misc
-pixi-blog.md
+docs/
+Project Helix**/
+
+# secrets
+src/biocanvas/passcodes.json
+
+# local project databases (runtime data, not source)
+helix/*.db
+spore/*.db
+
+# Claude
+.claude/
+CLAUDE.local.md

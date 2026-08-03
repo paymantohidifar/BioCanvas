@@ -17,17 +17,25 @@ jobs:
       - name: Checkout Code Repository
         uses: actions/checkout@v4
 
-      # Step B: Instantiate Locked Pixi Environment
-      - name: Instantiate Locked Pixi Environment
-        uses: prefix-dev/setup-pixi@v0.8.0
-        with:
-          pixi-version: v0.67.0
-          cache: true
-      
-      # Step C: Static Code Analysis (Linting)
-      - name: Run Ruff Linter
-        run: pixi run lint
+      # Step B: Install uv and sync the locked environment
+      - name: Install uv
+        uses: astral-sh/setup-uv@v9.0.0
 
-      # Step D: Execute Test Suite
+      - name: Sync Locked Environment
+        run: uv sync --group dev --locked
+
+      # Step C: passcodes.json is gitignored (see README's Project Passcodes
+      # section) but DataService.PROJECT_LIST loads it eagerly at import
+      # time, so a placeholder is required just to make the package importable.
+      - name: Create Placeholder Passcodes File
+        run: echo '{}' > src/biocanvas/passcodes.json
+
+      # Step D: Static Code Analysis (Linting)
+      - name: Run Ruff Linter
+        run: |
+          uv run ruff check .
+          uv run ruff format --check .
+
+      # Step E: Execute Test Suite
       - name: Execute Test Suite
-        run: pixi run test
+        run: uv run pytest
