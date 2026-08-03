@@ -15,5 +15,8 @@ __pycache__/
 # misc
 docs/
 
+# secrets
+src/biocanvas/passcodes.json
+
 # Claude
 .claude/
