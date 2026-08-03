@@ -21,6 +21,10 @@ docs/
 # secrets
 src/biocanvas/passcodes.json
 
+# local project databases (runtime data, not source)
+helix/*.db
+spore/*.db
+
 # Claude
 .claude/
 CLAUDE.local.md
