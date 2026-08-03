@@ -315,7 +315,7 @@ packages:
 - pypi: ./
   name: biocanvas
   version: 0.1.0
-  sha256: fb1870fa01b7269246a9257b43e88cbb05c631cc42502258c7d56370b183d08a
+  sha256: 061ac51d7878b3533254f5c480d4fe07e7e593b0261e301aeca918306180b689
   requires_dist:
   - pandas>=3.0.0
   - numpy>=2.2.0
