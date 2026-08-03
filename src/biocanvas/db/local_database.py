@@ -1,11 +1,12 @@
 # biocanvas/db/local_database.py
 """Local SQLite-backed drive client.
 
-``LocalDataBase`` supports local SQLite database: one ``.db`` file per 
+``LocalDataBase`` supports local SQLite database: one ``.db`` file per
 project, storing raw experiment files (``Meta.csv``, ``Benchling.zip``, ``Eve.zip``/``Pi.zip``)
 as BLOBs in a simple virtual-filesystem table. See ``database-changes.md``
 at the repo root for the schema and migration notes.
 """
+
 import os
 import sqlite3
 from typing import List, Optional
@@ -67,7 +68,7 @@ class LocalDataBase:
             folder does not exist or has no children.
         """
         assert self._conn is not None, "LocalDataBase.connect() must be called first."
-        parent_path = folder_path.rstrip('/')
+        parent_path = folder_path.rstrip("/")
         cursor = self._conn.execute(
             "SELECT name FROM items WHERE parent_path = ? ORDER BY name", (parent_path,)
         )

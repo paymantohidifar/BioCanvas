@@ -1,16 +1,17 @@
 # biocanvas/utils/helpers.py
 """Shared primitives: type aliases, exceptions, and cross-cutting table helpers."""
+
 import io
 import os
 import cProfile
 import pstats
-import pandas as pd # type: ignore
-from typing import Callable, Tuple, TypeVar, Any # type: ignore
+import pandas as pd  # type: ignore
+from typing import Callable, Tuple, TypeVar, Any  # type: ignore
 import logging
 
 logger = logging.getLogger(__name__)
 
-T = TypeVar('T')
+T = TypeVar("T")
 
 # Type alias for a structured HTML log entry: (message, severity_level)
 LogEntry = Tuple[str, str]
@@ -31,7 +32,7 @@ def is_seed_tank(tank: Any) -> bool:
     if tank is None or (isinstance(tank, float) and pd.isna(tank)):  # type: ignore
         return False
     name = str(tank)
-    return len(name) > 0 and name[0] == 'S'
+    return len(name) > 0 and name[0] == "S"
 
 
 def profile_method(method: Callable[..., T]) -> Callable[..., T]:
@@ -52,6 +53,7 @@ def profile_method(method: Callable[..., T]) -> Callable[..., T]:
             # function implementation
             pass
     """
+
     def wrapper(*args: Any, **kwargs: Any) -> T:
         if not os.environ.get("BIOCANVAS_PROFILE"):
             return method(*args, **kwargs)
@@ -60,7 +62,7 @@ def profile_method(method: Callable[..., T]) -> Callable[..., T]:
         result = method(*args, **kwargs)
         profiler.disable()
         s: io.StringIO = io.StringIO()
-        ps: pstats.Stats = pstats.Stats(profiler, stream=s).sort_stats('cumulative')
+        ps: pstats.Stats = pstats.Stats(profiler, stream=s).sort_stats("cumulative")
         ps.print_stats()
         logger.debug("profile_method [%s]:\n%s", method.__qualname__, s.getvalue())
         return result
@@ -81,11 +83,15 @@ def flatten_multiindex_columns(df: pd.DataFrame) -> pd.DataFrame:
         A deep copy of df with flattened, human-readable column names.
     """
     flat = df.copy(deep=True)
-    flat.columns = pd.Index([col[0] if col[1] == '' else f'{col[0]} | {col[1]}' for col in flat.columns]) # type: ignore
+    flat.columns = pd.Index(
+        [col[0] if col[1] == "" else f"{col[0]} | {col[1]}" for col in flat.columns]
+    )  # type: ignore
     return flat
 
 
-def join_kpi_data_on_index(kpi1_data: pd.DataFrame, kpi2_data: pd.DataFrame) -> pd.DataFrame:
+def join_kpi_data_on_index(
+    kpi1_data: pd.DataFrame, kpi2_data: pd.DataFrame
+) -> pd.DataFrame:
     """Joins two KPI dataframes on the index.
 
     Args:
@@ -95,9 +101,16 @@ def join_kpi_data_on_index(kpi1_data: pd.DataFrame, kpi2_data: pd.DataFrame) -> 
     Returns:
         Inner-joined DataFrame on Tank, Time (h), and Replicate columns.
     """
-    joined_data = kpi1_data.set_index([ # type: ignore
-        ('Tank', ''), ('Time (h)', ''), ('Replicate', '')
-    ]).join(kpi2_data.set_index([('Tank', ''), ('Time (h)', ''), ('Replicate', '')]), how='inner') # type: ignore
+    joined_data = kpi1_data.set_index(
+        [  # type: ignore
+            ("Tank", ""),
+            ("Time (h)", ""),
+            ("Replicate", ""),
+        ]
+    ).join(
+        kpi2_data.set_index([("Tank", ""), ("Time (h)", ""), ("Replicate", "")]),
+        how="inner",
+    )  # type: ignore
     return joined_data.reset_index()
 
 
@@ -107,6 +120,7 @@ class EmptyTableError(Exception):
     This exception is raised when operations are attempted on empty
     data tables where data is expected to be present.
     """
+
     pass
 
 
@@ -115,4 +129,5 @@ class PlottingError(Exception):
 
     This exception is raised when plotting operations fail due to unexpected issues.
     """
+
     pass

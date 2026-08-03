@@ -1,5 +1,6 @@
 # biocanvas/utils/io.py
 """File I/O utilities: directories, module loading, table classes, reports, ZIP, and local data client."""
+
 import os
 import shutil
 import base64
@@ -49,7 +50,7 @@ def resolve_process_zip_candidates() -> Tuple[Tuple[str, str], Tuple[str, str]]:
     Returns:
         ``(('Eve.zip', 'EveTable'), ('Pi.zip', 'PiTable'))``.
     """
-    return ('Eve.zip', 'EveTable'), ('Pi.zip', 'PiTable')
+    return ("Eve.zip", "EveTable"), ("Pi.zip", "PiTable")
 
 
 def detect_process_file_type(filenames: List[str]) -> Tuple[str, str]:
@@ -65,10 +66,10 @@ def detect_process_file_type(filenames: List[str]) -> Tuple[str, str]:
     Raises:
         FileNotFoundError: If neither 'Eve.zip' nor 'Pi.zip' is found in filenames.
     """
-    if 'Eve.zip' in filenames:
-        return 'Eve.zip', 'EveTable'
-    if 'Pi.zip' in filenames:
-        return 'Pi.zip', 'PiTable'
+    if "Eve.zip" in filenames:
+        return "Eve.zip", "EveTable"
+    if "Pi.zip" in filenames:
+        return "Pi.zip", "PiTable"
     raise FileNotFoundError("Neither Eve.zip nor Pi.zip found in experiment directory.")
 
 
@@ -85,10 +86,14 @@ def normalize_sample_labels(series: pd.Series) -> pd.Series:
     Returns:
         Series of normalised sample label strings.
     """
-    return series.str.replace(' ', '-', regex=False).str.split('-').str[:3].str.join('-') # type: ignore
+    return (
+        series.str.replace(" ", "-", regex=False).str.split("-").str[:3].str.join("-")
+    )  # type: ignore
 
 
-def zip_files(source_dir: str, save_dir: str, zip_name: str = "compressed_results.zip") -> None:
+def zip_files(
+    source_dir: str, save_dir: str, zip_name: str = "compressed_results.zip"
+) -> None:
     """Creates a compressed zip file from source directory contents.
 
     Recursively compresses all files in the source directory into a zip file
@@ -106,18 +111,18 @@ def zip_files(source_dir: str, save_dir: str, zip_name: str = "compressed_result
         raise ValueError("Both source_dir and save_dir must be provided.")
 
     zip_path = os.path.join(save_dir, zip_name)
-    with ZipFile(zip_path, 'w', ZIP_DEFLATED) as zip_file:
+    with ZipFile(zip_path, "w", ZIP_DEFLATED) as zip_file:
         for root, _, files in os.walk(source_dir):
             for file in files:
                 abs_path = os.path.join(root, file)
-                arc_path = os.path.relpath(abs_path, os.path.join(source_dir, '..'))
+                arc_path = os.path.relpath(abs_path, os.path.join(source_dir, ".."))
                 zip_file.write(abs_path, arc_path)
 
 
 def _read_csv_cached(path: str, cache: Dict[str, pd.DataFrame]) -> pd.DataFrame:
     """Reads a CSV file once per *cache* dict keyed by absolute path."""
     if path not in cache:
-        cache[path] = pd.read_csv(path) # type: ignore
+        cache[path] = pd.read_csv(path)  # type: ignore
     return cache[path]
 
 
@@ -144,44 +149,76 @@ def create_xlsx_report(
         ValueError: If any required argument is empty or None.
     """
     if not plot_names or not plot_description or not source_dir or not save_dir:
-        raise ValueError("plot_names, plot_description, source_dir and save_dir must all be provided.")
+        raise ValueError(
+            "plot_names, plot_description, source_dir and save_dir must all be provided."
+        )
 
     report_path = os.path.join(save_dir, report_name)
     csv_cache: Dict[str, pd.DataFrame] = {}
-    with pd.ExcelWriter(report_path, engine='xlsxwriter') as writer: # type: ignore
+    with pd.ExcelWriter(report_path, engine="xlsxwriter") as writer:  # type: ignore
         for plot_name in plot_names:
             startrow = 0
             startcol = 0
 
             if plot_name in plot_description:
-                plot_description[plot_name].to_excel(writer, sheet_name=plot_name, startrow=startrow, startcol=startcol) # type: ignore
+                plot_description[plot_name].to_excel(
+                    writer, sheet_name=plot_name, startrow=startrow, startcol=startcol
+                )  # type: ignore
                 startcol += plot_description[plot_name].shape[1] + 2
 
-            raw_data_file_path = os.path.join(source_dir, f'raw_data_{plot_name}.csv')
+            raw_data_file_path = os.path.join(source_dir, f"raw_data_{plot_name}.csv")
             if os.path.exists(raw_data_file_path):
                 raw_data = _read_csv_cached(raw_data_file_path, csv_cache)
-                raw_data.to_excel(writer, sheet_name=plot_name, startrow=startrow, startcol=startcol, index=False) # type: ignore
+                raw_data.to_excel(
+                    writer,
+                    sheet_name=plot_name,
+                    startrow=startrow,
+                    startcol=startcol,
+                    index=False,
+                )  # type: ignore
                 startcol += raw_data.shape[1] + 1
 
-            summary_stats_file_path = os.path.join(source_dir, f'summary_stats_{plot_name}.csv')
+            summary_stats_file_path = os.path.join(
+                source_dir, f"summary_stats_{plot_name}.csv"
+            )
             if os.path.exists(summary_stats_file_path):
                 summary_stats = _read_csv_cached(summary_stats_file_path, csv_cache)
-                summary_stats.to_excel(writer, sheet_name=plot_name, startrow=startrow, startcol=startcol, index=False) # type: ignore
+                summary_stats.to_excel(
+                    writer,
+                    sheet_name=plot_name,
+                    startrow=startrow,
+                    startcol=startcol,
+                    index=False,
+                )  # type: ignore
                 startcol += summary_stats.shape[1] + 1
 
-            stat_test_file_path = os.path.join(source_dir, f'significance_stats_{plot_name}.csv')
+            stat_test_file_path = os.path.join(
+                source_dir, f"significance_stats_{plot_name}.csv"
+            )
             if os.path.exists(stat_test_file_path):
                 stat_test = _read_csv_cached(stat_test_file_path, csv_cache)
-                stat_test.to_excel(writer, sheet_name=plot_name, startrow=startrow, startcol=startcol, index=False) # type: ignore
+                stat_test.to_excel(
+                    writer,
+                    sheet_name=plot_name,
+                    startrow=startrow,
+                    startcol=startcol,
+                    index=False,
+                )  # type: ignore
                 startcol += stat_test.shape[1] + 1
                 del stat_test
 
             worksheet = writer.sheets[plot_name]
-            worksheet.insert_image(1, startcol, os.path.join(source_dir, f'{plot_name}.png'))
+            worksheet.insert_image(
+                1, startcol, os.path.join(source_dir, f"{plot_name}.png")
+            )
 
 
 def _render_collapsible_table(
-    label: str, df: pd.DataFrame, header: bool = True, index: bool = True, open_by_default: bool = False
+    label: str,
+    df: pd.DataFrame,
+    header: bool = True,
+    index: bool = True,
+    open_by_default: bool = False,
 ) -> str:
     """Renders a pandas DataFrame as a collapsible HTML <details> block.
 
@@ -196,7 +233,9 @@ def _render_collapsible_table(
         An HTML string containing a <details> block with the table inside.
     """
     open_attr = " open" if open_by_default else ""
-    table_html = df.to_html(classes="report-table", border=0, index=index, header=header) # type: ignore
+    table_html = df.to_html(
+        classes="report-table", border=0, index=index, header=header
+    )  # type: ignore
     return f"<details{open_attr}>\n  <summary>{label}</summary>\n  {table_html}\n</details>\n"
 
 
@@ -226,7 +265,9 @@ def create_html_report(
         ValueError: If any required argument is empty or None.
     """
     if not plot_names or not plot_description or not source_dir or not save_dir:
-        raise ValueError("plot_names, plot_description, source_dir and save_dir must all be provided.")
+        raise ValueError(
+            "plot_names, plot_description, source_dir and save_dir must all be provided."
+        )
 
     _HTML_CSS = """
     <style>
@@ -249,36 +290,51 @@ def create_html_report(
     for plot_name in plot_names:
         parts: List[str] = [f"<section>\n<h2>{plot_name}</h2>\n"]
 
-        image_path = os.path.join(source_dir, f'{plot_name}.png')
+        image_path = os.path.join(source_dir, f"{plot_name}.png")
         if os.path.exists(image_path):
             with open(image_path, "rb") as img_file:
                 img_b64 = base64.b64encode(img_file.read()).decode("utf-8")
-            parts.append(f'<img class="plot-image" src="data:image/png;base64,{img_b64}" alt="{plot_name}" />\n')
+            parts.append(
+                f'<img class="plot-image" src="data:image/png;base64,{img_b64}" alt="{plot_name}" />\n'
+            )
 
         if plot_name in plot_description:
             parts.append(
                 _render_collapsible_table(
-                    "Description", plot_description[plot_name], header=False, open_by_default=True
+                    "Description",
+                    plot_description[plot_name],
+                    header=False,
+                    open_by_default=True,
                 )
             )
 
-        raw_data_path = os.path.join(source_dir, f'raw_data_{plot_name}.csv')
+        raw_data_path = os.path.join(source_dir, f"raw_data_{plot_name}.csv")
         if os.path.exists(raw_data_path):
-            parts.append(_render_collapsible_table(
-                "Raw Data", _read_csv_cached(raw_data_path, csv_cache), index=False
-            ))
+            parts.append(
+                _render_collapsible_table(
+                    "Raw Data", _read_csv_cached(raw_data_path, csv_cache), index=False
+                )
+            )
 
-        summary_stats_path = os.path.join(source_dir, f'summary_stats_{plot_name}.csv')
+        summary_stats_path = os.path.join(source_dir, f"summary_stats_{plot_name}.csv")
         if os.path.exists(summary_stats_path):
-            parts.append(_render_collapsible_table(
-                "Summary Statistics", _read_csv_cached(summary_stats_path, csv_cache), index=False
-            ))
+            parts.append(
+                _render_collapsible_table(
+                    "Summary Statistics",
+                    _read_csv_cached(summary_stats_path, csv_cache),
+                    index=False,
+                )
+            )
 
-        stat_test_path = os.path.join(source_dir, f'significance_stats_{plot_name}.csv')
+        stat_test_path = os.path.join(source_dir, f"significance_stats_{plot_name}.csv")
         if os.path.exists(stat_test_path):
-            parts.append(_render_collapsible_table(
-                "Significance Tests", _read_csv_cached(stat_test_path, csv_cache), index=False
-            ))
+            parts.append(
+                _render_collapsible_table(
+                    "Significance Tests",
+                    _read_csv_cached(stat_test_path, csv_cache),
+                    index=False,
+                )
+            )
 
         parts.append("</section>\n")
         sections.append("".join(parts))
@@ -330,6 +386,7 @@ class GeneralTable:
         zip_ref: Zipped file contents containing the table data.
         file_name: Name of the file within the zipped content to load.
     """
+
     def __init__(self, zip_ref: ZipFile, file_name: str):
         self.table = GeneralTable._load_table(zip_ref, file_name)
 
@@ -345,7 +402,7 @@ class GeneralTable:
             DataFrame containing the original table content.
         """
         with zip_ref.open(file_name) as f:
-            return pd.read_csv(f, na_values=['', 'NA', '#VALUE!'])  # type: ignore
+            return pd.read_csv(f, na_values=["", "NA", "#VALUE!"])  # type: ignore
 
     @classmethod
     def get_classname(cls) -> str:
@@ -367,6 +424,7 @@ class GeneralAnalyteTable(GeneralTable):
         zip_ref: Zipped file contents containing the analyte table.
         file_name: Name of the file within the zipped content to load.
     """
+
     def __init__(self, zip_ref: ZipFile, file_name: str):
         super().__init__(zip_ref, file_name)
 
@@ -379,51 +437,59 @@ class GeneralAnalyteTable(GeneralTable):
         analyte columns into individual measurements with proper naming and units.
 
         Returns:
-            pd.DataFrame: Processed analyte data organized such that columns are grouped 
+            pd.DataFrame: Processed analyte data organized such that columns are grouped
                 under the panel class (e.g., 'Sugar', 'Brad') and indexed by normalized sample label.
 
         Raises:
             EmptyTableError: If the analyte table is empty or missing the 'Sample' column.
         """
-   
 
         # Sanity check
-        df = self.table.copy().dropna(axis='columns', how='all')
-        if df.empty or df.get('Sample', None) is None:  # type: ignore
-            raise helpers.EmptyTableError('Cannot proceed! Analyte table is empty!')
+        df = self.table.copy().dropna(axis="columns", how="all")
+        if df.empty or df.get("Sample", None) is None:  # type: ignore
+            raise helpers.EmptyTableError("Cannot proceed! Analyte table is empty!")
 
         # Normalize sample labels
-        df['Sample'] = normalize_sample_labels(df['Sample'])  # type: ignore
-        df.set_index('Sample', inplace=True)  # type: ignore
+        df["Sample"] = normalize_sample_labels(df["Sample"])  # type: ignore
+        df.set_index("Sample", inplace=True)  # type: ignore
 
         proc_table: pd.DataFrame
 
         # Check if the table is in the old format
-        old_format_table: bool = df.columns.str.contains('Analyte').any() or df.columns.str.contains('Assay').any()  # type: ignore
+        old_format_table: bool = (
+            df.columns.str.contains("Analyte").any()
+            or df.columns.str.contains("Assay").any()
+        )  # type: ignore
 
         if old_format_table:
             # Parse the table in the old format
             parsed_analytes: Dict[str, pd.Series] = {}
             for i in range(0, df.shape[1], 3):
-                name, unit, values = GeneralAnalyteTable._parse_analyte_table(df.iloc[:, i:i + 3])  # type: ignore
+                name, unit, values = GeneralAnalyteTable._parse_analyte_table(
+                    df.iloc[:, i : i + 3]
+                )  # type: ignore
                 if name:
-                    parsed_analytes[f'{name} ({unit})'] = values  # type: ignore
-            proc_table = pd.DataFrame(parsed_analytes).reset_index().set_index('Sample')  # type: ignore
+                    parsed_analytes[f"{name} ({unit})"] = values  # type: ignore
+            proc_table = pd.DataFrame(parsed_analytes).reset_index().set_index("Sample")  # type: ignore
         else:
             # No need to parse the table in the new format as it is already in the correct format
             proc_table = df
 
         # Group the columns under the concrete panel class name (e.g. Sugar, Brad)
-        return GeneralAnalyteTable._group_cols(proc_table, self.__class__.get_classname())
+        return GeneralAnalyteTable._group_cols(
+            proc_table, self.__class__.get_classname()
+        )
 
     @staticmethod
-    def _parse_analyte_table(df_chunk: pd.DataFrame) -> Tuple[Optional[str], Optional[str], pd.Series]:
+    def _parse_analyte_table(
+        df_chunk: pd.DataFrame,
+    ) -> Tuple[Optional[str], Optional[str], pd.Series]:
         """
         Parses a DataFrame chunk representing a single analyte and extracts its name, normalized unit,
         and values as a Series.
 
         Args:
-            df_chunk (pd.DataFrame): DataFrame slice corresponding to one analyte, 
+            df_chunk (pd.DataFrame): DataFrame slice corresponding to one analyte,
                 typically with three columns (name, values, unit).
 
         Returns:
@@ -436,17 +502,19 @@ class GeneralAnalyteTable(GeneralTable):
             - Automatically normalizes values to 'g/L' if a supported unit conversion is used.
             - Returns (None, None, empty Series) if the analyte cannot be parsed from the chunk.
         """
-   
-        unit_conversion = {'g/L': 1., 'mg/L': 1e3, 'ug/L': 1e6}
 
-        if df_chunk.dropna(axis='columns', how='all').shape[1] == 3:
+        unit_conversion = {"g/L": 1.0, "mg/L": 1e3, "ug/L": 1e6}
+
+        if df_chunk.dropna(axis="columns", how="all").shape[1] == 3:
             name: str = df_chunk.iloc[0, 0]  # type: ignore
             orig_unit: str = df_chunk.iloc[0, 2]  # type: ignore
-            unit: str = 'g/L' if orig_unit in unit_conversion.keys() else orig_unit  # type: ignore
-            values: pd.Series = df_chunk.iloc[:, 1] / unit_conversion.get(orig_unit, 1.)  # type: ignore
+            unit: str = "g/L" if orig_unit in unit_conversion.keys() else orig_unit  # type: ignore
+            values: pd.Series = df_chunk.iloc[:, 1] / unit_conversion.get(
+                orig_unit, 1.0
+            )  # type: ignore
             return name, unit, values  # type: ignore
         else:
-            return (None, None, pd.Series(dtype='object'))
+            return (None, None, pd.Series(dtype="object"))
 
     @staticmethod
     def _group_cols(df: pd.DataFrame, class_name: str) -> pd.DataFrame:
@@ -469,6 +537,7 @@ class LocalDataClient:
         drive: LocalDataBase instance for local database interactions.
         data_dir: Filesystem path to the project's SQLite ``.db`` file.
     """
+
     def __init__(self):
         self.drive = LocalDataBase()
         self.data_dir = ""

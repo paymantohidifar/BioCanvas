@@ -1,12 +1,21 @@
 # biocanvas/helix/meta.py
 """Class for reading and processing metadata table from Project Helix."""
+
 from typing import List, Set, IO
 import logging
-import pandas as pd # type: ignore
+import pandas as pd  # type: ignore
 from biocanvas.utils import helpers
 
 # Maps the leading letter of a tank ID to its bioreactor platform name
-TANK_ID_TO_PLATFORM = {'S': 'Seed', 'M': '0.3L', 'L': '2L', 'X': '10L', 'F': '40L', 'A': 'Flask', 'B': 'BioLector'}
+TANK_ID_TO_PLATFORM = {
+    "S": "Seed",
+    "M": "0.3L",
+    "L": "2L",
+    "X": "10L",
+    "F": "40L",
+    "A": "Flask",
+    "B": "BioLector",
+}
 
 logger = logging.getLogger(__name__)
 
@@ -38,7 +47,7 @@ class Meta:
         Returns:
             pd.DataFrame: Original metadata table.
         """
-        return pd.read_csv(file_content) # type: ignore
+        return pd.read_csv(file_content)  # type: ignore
 
     def _process(self) -> pd.DataFrame:
         """QC-checks, then derives Platform and Strain columns and standardises source labels.
@@ -49,16 +58,16 @@ class Meta:
         logger.info("Processing metadata for Exp '%s'", self.exp_id)
         proc_table = self._qc_check()
 
-        proc_table['Platform'] = proc_table['Tank'].str[0].map(TANK_ID_TO_PLATFORM) # type: ignore
-        proc_table['Strain']   = proc_table['Strain Batch'].str.split('-').str[0].str[3:] # type: ignore
+        proc_table["Platform"] = proc_table["Tank"].str[0].map(TANK_ID_TO_PLATFORM)  # type: ignore
+        proc_table["Strain"] = proc_table["Strain Batch"].str.split("-").str[0].str[3:]  # type: ignore
 
-        proc_table.insert(0, 'Exp', self.exp_id) # type: ignore
-        proc_table.insert(2, 'Platform', proc_table.pop('Platform')) # type: ignore
-        proc_table.insert(7, 'Strain',   proc_table.pop('Strain')) # type: ignore
+        proc_table.insert(0, "Exp", self.exp_id)  # type: ignore
+        proc_table.insert(2, "Platform", proc_table.pop("Platform"))  # type: ignore
+        proc_table.insert(7, "Strain", proc_table.pop("Strain"))  # type: ignore
 
         # Remove the trailing version suffix (last hyphen-segment) from source labels
-        for col in ['Media', 'Feed Source', 'Co-feed Source', 'Bolus Source']:
-            proc_table[col] = proc_table[col].str.rsplit('-', n=1).str[0] # type: ignore
+        for col in ["Media", "Feed Source", "Co-feed Source", "Bolus Source"]:
+            proc_table[col] = proc_table[col].str.rsplit("-", n=1).str[0]  # type: ignore
 
         return proc_table
 
@@ -76,40 +85,62 @@ class Meta:
             helpers.EmptyTableError: If no rows survive the quality check.
         """
         essential_cols: List[str] = [
-            'Tank', 'Condition', 'Replicate', 'Strain Batch', 'EFT (h)', 'Media',
-            'Initial Broth Vol (ml)', 'pH Setpoint', 'Temp (°C) Setpoint', 'DO (%) Setpoint',
+            "Tank",
+            "Condition",
+            "Replicate",
+            "Strain Batch",
+            "EFT (h)",
+            "Media",
+            "Initial Broth Vol (ml)",
+            "pH Setpoint",
+            "Temp (°C) Setpoint",
+            "DO (%) Setpoint",
         ]
         drop_tanks_set: Set[int] = set()
 
         # Flag rows missing any essential value
-        bad_essential = self.table[essential_cols].isna().any(axis=1) # type: ignore
-        for idx in self.table.index[bad_essential]: # type: ignore
+        bad_essential = self.table[essential_cols].isna().any(axis=1)  # type: ignore
+        for idx in self.table.index[bad_essential]:  # type: ignore
             logger.warning(
                 "Exp '%s': metadata for tank '%s' is missing values in essential columns; dropping from analysis.",
-                self.exp_id, self.table.at[idx, 'Tank'] # type: ignore
+                self.exp_id,
+                self.table.at[idx, "Tank"],  # type: ignore
             )
-        drop_tanks_set.update(self.table.index[bad_essential]) # type: ignore
+        drop_tanks_set.update(self.table.index[bad_essential])  # type: ignore
 
         # Flag rows whose manual feed profiles have mismatched segment counts
-        for feed_type in ['Feed', 'Co-feed', 'Bolus', 'Acid', 'Base']:
-            has_source = pd.notna(self.table[f'{feed_type} Source']) # type: ignore
-            not_eve_pi = self.table[f'Eve/Pi Controlled {feed_type}'] == 'No' # type: ignore
-            time_segs  = self.table[f'Manual {feed_type} Time Profile (h)'].astype(str).str.count(';') # type: ignore
-            rate_segs  = self.table[f'Manual Target {feed_type} Rate (ml/h)'].astype(str).str.count(';') # type: ignore
-            bad_feed   = has_source & not_eve_pi & (time_segs != rate_segs) # type: ignore
-            for idx in self.table.index[bad_feed]: # type: ignore
+        for feed_type in ["Feed", "Co-feed", "Bolus", "Acid", "Base"]:
+            has_source = pd.notna(self.table[f"{feed_type} Source"])  # type: ignore
+            not_eve_pi = self.table[f"Eve/Pi Controlled {feed_type}"] == "No"  # type: ignore
+            time_segs = (
+                self.table[f"Manual {feed_type} Time Profile (h)"]
+                .astype(str)
+                .str.count(";")
+            )  # type: ignore
+            rate_segs = (
+                self.table[f"Manual Target {feed_type} Rate (ml/h)"]
+                .astype(str)
+                .str.count(";")
+            )  # type: ignore
+            bad_feed = has_source & not_eve_pi & (time_segs != rate_segs)  # type: ignore
+            for idx in self.table.index[bad_feed]:  # type: ignore
                 logger.warning(
                     "Exp '%s': metadata for tank '%s' has wrong format in 'Manual %s Time Profile (h)' "
                     "and/or 'Manual Target %s Rate (ml/h)'; dropping from analysis.",
-                    self.exp_id, self.table.at[idx, 'Tank'], feed_type, feed_type # type: ignore
+                    self.exp_id,
+                    self.table.at[idx, "Tank"],
+                    feed_type,
+                    feed_type,  # type: ignore
                 )
-            drop_tanks_set.update(self.table.index[bad_feed]) # type: ignore
+            drop_tanks_set.update(self.table.index[bad_feed])  # type: ignore
 
-        qced_table = self.table.drop(index=list(drop_tanks_set)).fillna('NA') # type: ignore
+        qced_table = self.table.drop(index=list(drop_tanks_set)).fillna("NA")  # type: ignore
         if not qced_table.empty:
             return qced_table
         else:
-            raise helpers.EmptyTableError('Processed metadata table is empty. Skipping analysis of the whole experiment!')
+            raise helpers.EmptyTableError(
+                "Processed metadata table is empty. Skipping analysis of the whole experiment!"
+            )
 
     def get_num_tanks(self):
         """Counts seed and fermentation tanks in the processed table.
@@ -117,9 +148,9 @@ class Meta:
         Returns:
             tuple[int, int]: Number of seed tanks and fermentation tanks.
         """
-        seed_mask = self.proc_table['Tank'].apply(helpers.is_seed_tank)  # type: ignore
-        seed_tanks = int(seed_mask.sum()) # type: ignore
-        ferm_tanks = int((~seed_mask).sum()) # type: ignore
+        seed_mask = self.proc_table["Tank"].apply(helpers.is_seed_tank)  # type: ignore
+        seed_tanks = int(seed_mask.sum())  # type: ignore
+        ferm_tanks = int((~seed_mask).sum())  # type: ignore
         return seed_tanks, ferm_tanks
 
     def is_empty(self):

@@ -1,5 +1,6 @@
 # biocanvas/utils/stats.py
 """Statistical analysis pipeline: descriptive stats and significance testing."""
+
 import numpy as np
 import pandas as pd
 from scipy import stats
@@ -9,13 +10,16 @@ from biocanvas.helix.config import SIGNIFICANCE_TEST_CONFIG
 
 logger = logging.getLogger(__name__)
 
-ALPHA: float = SIGNIFICANCE_TEST_CONFIG.get('alpha', 0.05)
-SHAPIRO_THRESHOLD: float = SIGNIFICANCE_TEST_CONFIG.get('shapiro_threshold', 0.05)
-MIN_SAMPLE_SIZE_FOR_TESTS: int = SIGNIFICANCE_TEST_CONFIG.get('min_sample_size_for_tests', 3)
+ALPHA: float = SIGNIFICANCE_TEST_CONFIG.get("alpha", 0.05)
+SHAPIRO_THRESHOLD: float = SIGNIFICANCE_TEST_CONFIG.get("shapiro_threshold", 0.05)
+MIN_SAMPLE_SIZE_FOR_TESTS: int = SIGNIFICANCE_TEST_CONFIG.get(
+    "min_sample_size_for_tests", 3
+)
 
 
 class StatsCalculationError(Exception):
     """Raised when statistical analysis fails on valid plot data."""
+
     pass
 
 
@@ -44,8 +48,8 @@ def _pivot_analysis_data(
     if len(y) > 1:
         # Sum multiple y-columns into a single 'Total' series before pivoting
         data = data.copy()
-        data['Total'] = data[y].sum(axis=1).values  # type: ignore
-        y = ['Total']  # type: ignore
+        data["Total"] = data[y].sum(axis=1).values  # type: ignore
+        y = ["Total"]  # type: ignore
 
     pivot_cols = [hue, x] if hue is not None else x
     return data.pivot(columns=pivot_cols, values=y[0])  # type: ignore
@@ -133,7 +137,7 @@ def _run_pairwise_significance(
       - If sample sizes are too small (<3), no test is conducted.
 
     Args:
-        pivot_data (pd.DataFrame): Wide-format DataFrame produced by _pivot_analysis_data 
+        pivot_data (pd.DataFrame): Wide-format DataFrame produced by _pivot_analysis_data
             (columns = groups, optionally MultiIndex if hue is present), containing numeric data.
         x (str): Name of the primary grouping variable.
         x_vals (List[Any]): The two unique values of the primary grouping variable.
@@ -154,54 +158,84 @@ def _run_pairwise_significance(
     Raises:
         KeyError: If pivot_data does not contain the required group columns.
     """
-    _COLS = ['Test', 'Fold Change', 'Statistic', 'p-value', f'Significant (α={ALPHA})', 'Note']
+    _COLS = [
+        "Test",
+        "Fold Change",
+        "Statistic",
+        "p-value",
+        f"Significant (α={ALPHA})",
+        "Note",
+    ]
     pair = (x_vals[0], x_vals[1])
-    note = ''
+    note = ""
     rows: Dict[Any, Any] = {}  # type: ignore
 
     # Create strata for the hue column
-    strata = [(h, ) for h in hue_vals] if hue_vals is not None else [None]
+    strata = [(h,) for h in hue_vals] if hue_vals is not None else [None]
 
     for stratum in strata:
         # Get the data for the two groups
         if stratum is not None:
-            g1: np.ndarray[float, Any] = pivot_data.get((stratum[0], pair[0]), # type: ignore
-                                                   pd.Series(dtype=float)).dropna().to_numpy() # type: ignore
-            g2: np.ndarray[float, Any] = pivot_data.get((stratum[0], pair[1]), # type: ignore
-                                                   pd.Series(dtype=float)).dropna().to_numpy() # type: ignore
+            g1: np.ndarray[float, Any] = (
+                pivot_data.get(
+                    (stratum[0], pair[0]),  # type: ignore
+                    pd.Series(dtype=float),
+                )
+                .dropna()
+                .to_numpy()
+            )  # type: ignore
+            g2: np.ndarray[float, Any] = (
+                pivot_data.get(
+                    (stratum[0], pair[1]),  # type: ignore
+                    pd.Series(dtype=float),
+                )
+                .dropna()
+                .to_numpy()
+            )  # type: ignore
             idx_key = (stratum[0], pair)
         else:
-            g1: np.ndarray[float, Any] = pivot_data.get(pair[0], pd.Series(dtype=float)).dropna().to_numpy() # type: ignore
-            g2: np.ndarray[float, Any] = pivot_data.get(pair[1], pd.Series(dtype=float)).dropna().to_numpy() # type: ignore
+            g1: np.ndarray[float, Any] = (
+                pivot_data.get(pair[0], pd.Series(dtype=float)).dropna().to_numpy()
+            )  # type: ignore
+            g2: np.ndarray[float, Any] = (
+                pivot_data.get(pair[1], pd.Series(dtype=float)).dropna().to_numpy()
+            )  # type: ignore
             idx_key = pair
 
         # Run Welch's t-test or Mann-Whitney U test based on sample size and normality
         if len(g1) < MIN_SAMPLE_SIZE_FOR_TESTS or len(g2) < MIN_SAMPLE_SIZE_FOR_TESTS:  # type: ignore
             test_name = "No test"
             stat, p_val = None, None
-            note = f'Sample size is small (n < {MIN_SAMPLE_SIZE_FOR_TESTS}). No test was performed.'
+            note = f"Sample size is small (n < {MIN_SAMPLE_SIZE_FOR_TESTS}). No test was performed."
         elif len(g1) < 10 or len(g2) < 10:  # type: ignore
             test_name = "Welch's t-test"
-            stat, p_val = stats.ttest_ind(g1, g2, equal_var=False, alternative='two-sided')  # type: ignore
-            note = 'Sample size is small (n < 10). Welch\'s t-test with permutation test to avoid bias.'
+            stat, p_val = stats.ttest_ind(
+                g1, g2, equal_var=False, alternative="two-sided"
+            )  # type: ignore
+            note = "Sample size is small (n < 10). Welch's t-test with permutation test to avoid bias."
         else:
             # Run normality check for groups with sample size >= 10
             if _check_normality([g1, g2]):  # type: ignore
                 test_name = "Welch's t-test"
-                stat, p_val = stats.ttest_ind( # type: ignore
-                    g1, g2, equal_var=False, alternative='two-sided',
+                stat, p_val = stats.ttest_ind(  # type: ignore
+                    g1,
+                    g2,
+                    equal_var=False,
+                    alternative="two-sided",
                     method=stats.PermutationMethod(n_resamples=1000, random_state=42),
                 )
-                note = 'Shapiro-Wilk test: Data seems to be normally distributed.'
+                note = "Shapiro-Wilk test: Data seems to be normally distributed."
             else:
                 test_name = "Mann-Whitney U"
-                stat, p_val = stats.mannwhitneyu(g1, g2, alternative='two-sided')  # type: ignore
-                note = 'Shapiro-Wilk test: Data seems to be not normally distributed.'
+                stat, p_val = stats.mannwhitneyu(g1, g2, alternative="two-sided")  # type: ignore
+                note = "Shapiro-Wilk test: Data seems to be not normally distributed."
 
-        fold_change = round(float(np.mean(g2) / np.mean(g1)), 3) if np.mean(g1) != 0 else None # type: ignore
+        fold_change = (
+            round(float(np.mean(g2) / np.mean(g1)), 3) if np.mean(g1) != 0 else None
+        )  # type: ignore
         stat_out = round(float(stat), 3) if stat is not None else None  # type: ignore
         p_out = round(float(p_val), 3) if p_val is not None else None  # type: ignore
-        sig_out = 'Yes' if (p_val is not None and p_val < ALPHA) else 'No'  # type: ignore
+        sig_out = "Yes" if (p_val is not None and p_val < ALPHA) else "No"  # type: ignore
         rows[idx_key] = [test_name, fold_change, stat_out, p_out, sig_out, note]  # type: ignore
 
     if hue_vals is not None:
@@ -212,7 +246,7 @@ def _run_pairwise_significance(
         # the plain-string name= argument with a ValueError.
         index = pd.Index([pair], name=x, tupleize_cols=False)
 
-    return pd.DataFrame.from_dict(rows, orient='index', columns=_COLS).set_axis(index)  # type: ignore
+    return pd.DataFrame.from_dict(rows, orient="index", columns=_COLS).set_axis(index)  # type: ignore
 
 
 def _run_omnibus_significance(
@@ -246,10 +280,17 @@ def _run_omnibus_significance(
         the omnibus was significant. When hue is present, strata are stacked with a
         MultiIndex keyed on the hue values.
     """
-    _COLS = ['Test', 'Fold Change', 'Statistic', 'p-value', f'Significant (α={ALPHA})', 'Note']
+    _COLS = [
+        "Test",
+        "Fold Change",
+        "Statistic",
+        "p-value",
+        f"Significant (α={ALPHA})",
+        "Note",
+    ]
     k = len(x_vals)
 
-    strata = [(h, ) for h in hue_vals] if hue_vals is not None else [None]
+    strata = [(h,) for h in hue_vals] if hue_vals is not None else [None]
     stratum_frames: List[pd.DataFrame] = []
     stratum_keys: List[Any] = []
 
@@ -257,17 +298,19 @@ def _run_omnibus_significance(
         rows: Dict[Any, Any] = {}
 
         if stratum is not None:
-            groups: List[np.ndarray[float, Any]] = [ # type: ignore
-                pivot_data.get((stratum[0], v), pd.Series(dtype=float)).to_numpy() for v in x_vals # type: ignore
+            groups: List[np.ndarray[float, Any]] = [  # type: ignore
+                pivot_data.get((stratum[0], v), pd.Series(dtype=float)).to_numpy()
+                for v in x_vals  # type: ignore
             ]
         else:
-            groups: List[np.ndarray[float, Any]] = [ # type: ignore
-                pivot_data.get(v, pd.Series(dtype=float)).to_numpy() for v in x_vals # type: ignore
+            groups: List[np.ndarray[float, Any]] = [  # type: ignore
+                pivot_data.get(v, pd.Series(dtype=float)).to_numpy()
+                for v in x_vals  # type: ignore
             ]
 
         # Remove NaN values
         clean_groups = [g[~np.isnan(g)] for g in groups]
-        
+
         # Remove groups with less than MIN_SAMPLE_SIZE_FOR_TESTS valid observations
         omnibus_groups = [g for g in clean_groups if len(g) > 0]
         group_sizes = [len(g) for g in clean_groups]
@@ -276,17 +319,17 @@ def _run_omnibus_significance(
 
         # Groups with n < 10 are treated as non-normal to avoid unstable Shapiro-Wilk decisions.
         is_normal = False if has_group_under_10 else _check_normality(clean_groups)
-        note = ''
+        note = ""
         if has_small_group:
-            note = f'At least one group has n < {MIN_SAMPLE_SIZE_FOR_TESTS}; post-hoc pairs involving small groups are skipped.'
+            note = f"At least one group has n < {MIN_SAMPLE_SIZE_FOR_TESTS}; post-hoc pairs involving small groups are skipped."
         elif has_group_under_10:
-            note = 'At least one group has n < 10; data are treated as non-normal.'
+            note = "At least one group has n < 10; data are treated as non-normal."
 
         # --- Stage 1: omnibus ---
         if len(omnibus_groups) < 2:
             omni_name = "No test"
             omni_stat, omni_p = None, None
-            note = 'Fewer than two groups contain data. No omnibus test was performed.'
+            note = "Fewer than two groups contain data. No omnibus test was performed."
         elif is_normal:
             # Run one-way ANOVA
             omni_stat, omni_p = stats.f_oneway(*clean_groups)  # type: ignore
@@ -298,7 +341,11 @@ def _run_omnibus_significance(
         else:
             # Run Kruskal-Wallis test
             omni_name = "Kruskal-Wallis"
-            combined = (np.concatenate(omnibus_groups) if omnibus_groups else np.empty(0, dtype=float))  # type: ignore
+            combined = (
+                np.concatenate(omnibus_groups)
+                if omnibus_groups
+                else np.empty(0, dtype=float)
+            )  # type: ignore
             if combined.size > 0 and np.ptp(combined) == 0:  # type: ignore
                 omni_stat, omni_p = 0.0, 1.0
             else:
@@ -310,11 +357,18 @@ def _run_omnibus_significance(
                     else:
                         raise
 
-        fold_change_out = 'N/A'
+        fold_change_out = "N/A"
         omni_stat_out = round(float(omni_stat), 3) if omni_stat is not None else None  # type: ignore
         omni_p_out = round(float(omni_p), 3) if omni_p is not None else None  # type: ignore
-        omni_sig_out = 'Yes' if (omni_p is not None and omni_p < ALPHA) else 'No'  # type: ignore
-        rows['Omnibus'] = [omni_name, fold_change_out, omni_stat_out, omni_p_out, omni_sig_out, note]
+        omni_sig_out = "Yes" if (omni_p is not None and omni_p < ALPHA) else "No"  # type: ignore
+        rows["Omnibus"] = [
+            omni_name,
+            fold_change_out,
+            omni_stat_out,
+            omni_p_out,
+            omni_sig_out,
+            note,
+        ]
 
         # --- Stage 2: post-hoc (only when omnibus is significant) ---
         if omni_p is not None and omni_p < ALPHA:
@@ -325,41 +379,82 @@ def _run_omnibus_significance(
                         p_adj = float(tukey.pvalue[i, j])
                         stat_val = float(tukey.statistic[i, j])
                         pair_key = (x_vals[i], x_vals[j])
-                        fold_change = round(float(np.mean(clean_groups[j]) / np.mean(clean_groups[i])), 3) if np.mean(clean_groups[i]) != 0 else None # type: ignore
+                        fold_change = (
+                            round(
+                                float(
+                                    np.mean(clean_groups[j]) / np.mean(clean_groups[i])
+                                ),
+                                3,
+                            )
+                            if np.mean(clean_groups[i]) != 0
+                            else None
+                        )  # type: ignore
                         stat_out = round(stat_val, 3) if stat_val is not None else None  # type: ignore
                         p_out = round(p_adj, 3) if p_adj is not None else None  # type: ignore
-                        sig_out = 'Yes' if (p_adj is not None and p_adj < ALPHA) else 'No'  # type: ignore
+                        sig_out = (
+                            "Yes" if (p_adj is not None and p_adj < ALPHA) else "No"
+                        )  # type: ignore
                         note = "Tukey HSD controls family-wise error; SciPy applies Tukey-Kramer for unequal group sizes."
-                        rows[pair_key] = ["Tukey HSD / Tukey-Kramer", fold_change, stat_out, p_out, sig_out, note]
+                        rows[pair_key] = [
+                            "Tukey HSD / Tukey-Kramer",
+                            fold_change,
+                            stat_out,
+                            p_out,
+                            sig_out,
+                            note,
+                        ]
             else:
                 pairwise_results: List[Tuple[Any, float, float, float]] = []
                 for i in range(k):
                     for j in range(i + 1, k):
                         pair_key = (x_vals[i], x_vals[j])
-                        fold_change_out = round(float(np.mean(clean_groups[j]) / np.mean(clean_groups[i])), 3) if np.mean(clean_groups[i]) != 0 else None # type: ignore
+                        fold_change_out = (
+                            round(
+                                float(
+                                    np.mean(clean_groups[j]) / np.mean(clean_groups[i])
+                                ),
+                                3,
+                            )
+                            if np.mean(clean_groups[i]) != 0
+                            else None
+                        )  # type: ignore
                         if (
-                            len(clean_groups[i]) < MIN_SAMPLE_SIZE_FOR_TESTS or
-                            len(clean_groups[j]) < MIN_SAMPLE_SIZE_FOR_TESTS
+                            len(clean_groups[i]) < MIN_SAMPLE_SIZE_FOR_TESTS
+                            or len(clean_groups[j]) < MIN_SAMPLE_SIZE_FOR_TESTS
                         ):
                             rows[pair_key] = [
-                                "No test", fold_change_out, None, None, 'No',
-                                f'Sample size is small (n < {MIN_SAMPLE_SIZE_FOR_TESTS}). No post-hoc test was performed.'
+                                "No test",
+                                fold_change_out,
+                                None,
+                                None,
+                                "No",
+                                f"Sample size is small (n < {MIN_SAMPLE_SIZE_FOR_TESTS}). No post-hoc test was performed.",
                             ]
                             continue
-                        mwu_stat, p_raw = stats.mannwhitneyu(clean_groups[i], clean_groups[j], alternative='two-sided') # type: ignore
-                        pairwise_results.append((pair_key, fold_change_out, float(mwu_stat), float(p_raw))) # type: ignore
+                        mwu_stat, p_raw = stats.mannwhitneyu(
+                            clean_groups[i], clean_groups[j], alternative="two-sided"
+                        )  # type: ignore
+                        pairwise_results.append(
+                            (pair_key, fold_change_out, float(mwu_stat), float(p_raw))
+                        )  # type: ignore
 
-                adjusted_p_values = _benjamini_hochberg_adjust([result[3] for result in pairwise_results])
-                for (pair_key, fold_change_out, mwu_stat, _p_raw), p_adj in zip(pairwise_results, adjusted_p_values):
+                adjusted_p_values = _benjamini_hochberg_adjust(
+                    [result[3] for result in pairwise_results]
+                )
+                for (pair_key, fold_change_out, mwu_stat, _p_raw), p_adj in zip(
+                    pairwise_results, adjusted_p_values
+                ):
                     rows[pair_key] = [
                         "MWU (FDR-BH)",
                         fold_change_out,
                         round(float(mwu_stat), 3),
                         round(p_adj, 3),
-                        'Yes' if p_adj < ALPHA else 'No',
-                        'Mann-Whitney U p-value adjusted using Benjamini-Hochberg FDR.'
+                        "Yes" if p_adj < ALPHA else "No",
+                        "Mann-Whitney U p-value adjusted using Benjamini-Hochberg FDR.",
                     ]
-        stratum_frames.append(pd.DataFrame.from_dict(rows, orient='index', columns=_COLS)) # type: ignore
+        stratum_frames.append(
+            pd.DataFrame.from_dict(rows, orient="index", columns=_COLS)
+        )  # type: ignore
         if stratum is not None:
             stratum_keys.append(stratum[0])
 
@@ -407,7 +502,9 @@ def calculate_stats(
     # Check if data, x, or y is empty and log (WARNING = error)
     if data.empty or not x or not y:
         logger.warning("calculate_stats: data is empty or x or y is empty.")
-        raise StatsCalculationError("calculate_stats: data is empty or x or y is empty.")
+        raise StatsCalculationError(
+            "calculate_stats: data is empty or x or y is empty."
+        )
 
     try:
         # Pivot the data for pairwise or omnibus significance test and log (DEBUG = detailed)
@@ -427,7 +524,9 @@ def calculate_stats(
         elif run_sig_test and len(x_vals) > 2:  # type: ignore
             sig_table = _run_omnibus_significance(pivot_data, x, x_vals, hue, hue_vals)  # type: ignore
         else:
-            logger.warning("calculate_stats: no significance test run because the number of groups is not appropriate.")
+            logger.warning(
+                "calculate_stats: no significance test run because the number of groups is not appropriate."
+            )
 
         return pivot_data.describe().round(5).T.sort_index(), sig_table  # type: ignore
     except StatsCalculationError:

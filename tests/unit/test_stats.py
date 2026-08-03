@@ -1,4 +1,5 @@
 """Tests for biocanvas.utils.stats."""
+
 import numpy as np
 import pytest
 import pandas as pd
@@ -22,7 +23,9 @@ class TestCalculateStatsDegenerateOmnibus:
             for _ in range(5):
                 rows.append({"Condition_num": x, "KPI": 42.0})
         data = pd.DataFrame(rows)
-        _summary, sig = utils_stats.calculate_stats(data=data, x="Condition_num", y=["KPI"], hue=None, run_sig_test=True)
+        _summary, sig = utils_stats.calculate_stats(
+            data=data, x="Condition_num", y=["KPI"], hue=None, run_sig_test=True
+        )
         omnibus = sig.loc["Omnibus"]
         assert omnibus["Significant (α=0.05)"] == "No"
         assert float(omnibus["p-value"]) == pytest.approx(1.0)
@@ -34,7 +37,9 @@ class TestCalculateStatsDegenerateOmnibus:
             for _ in range(5):
                 rows.append({"Condition_num": x, "KPI": 3.14})
         data = pd.DataFrame(rows)
-        _summary, sig = utils_stats.calculate_stats(data=data, x="Condition_num", y=["KPI"], hue=None, run_sig_test=True)
+        _summary, sig = utils_stats.calculate_stats(
+            data=data, x="Condition_num", y=["KPI"], hue=None, run_sig_test=True
+        )
         omnibus = sig.loc["Omnibus"]
         assert omnibus["Test"] == "Kruskal-Wallis"
         assert omnibus["p-value"] == 1.0
@@ -46,9 +51,7 @@ class TestCalculateStatsDegenerateOmnibus:
         for hue_val in ("early", "late"):
             for x in (10, 20, 30):
                 for _ in range(4):
-                    rows.append(
-                        {"Time": hue_val, "Condition_num": x, "KPI": 0.0}
-                    )
+                    rows.append({"Time": hue_val, "Condition_num": x, "KPI": 0.0})
         data = pd.DataFrame(rows)
         _summary, sig = utils_stats.calculate_stats(
             data=data, x="Condition_num", y=["KPI"], hue="Time", run_sig_test=True
@@ -64,14 +67,14 @@ class TestCalculateStatsDegenerateOmnibus:
 # _run_pairwise_significance — test-selection logic, output schema, significance
 # =============================================================================
 
-ALPHA = float(SIGNIFICANCE_TEST_CONFIG.get('alpha', 0.05))
+ALPHA = float(SIGNIFICANCE_TEST_CONFIG.get("alpha", 0.05))
 _EXPECTED_PAIRWISE_COLS = [
-    'Test',
-    'Fold Change',
-    'Statistic',
-    'p-value',
-    f'Significant (α={ALPHA})',
-    'Note',
+    "Test",
+    "Fold Change",
+    "Statistic",
+    "p-value",
+    f"Significant (α={ALPHA})",
+    "Note",
 ]
 
 _PATCH_NORMALITY = "biocanvas.utils.stats._check_normality"
@@ -95,9 +98,15 @@ class TestRunPairwiseSignificance:
         """Build a MultiIndex-column pivot for two hue strata ('early', 'late') and two groups (1, 2)."""
         data = pd.DataFrame(
             {
-                "Cond": [1] * len(g1_early) + [2] * len(g2_early) + [1] * len(g1_late) + [2] * len(g2_late),
+                "Cond": [1] * len(g1_early)
+                + [2] * len(g2_early)
+                + [1] * len(g1_late)
+                + [2] * len(g2_late),
                 "KPI": g1_early + g2_early + g1_late + g2_late,
-                "Time": (["early"] * (len(g1_early) + len(g2_early)) + ["late"] * (len(g1_late) + len(g2_late))),
+                "Time": (
+                    ["early"] * (len(g1_early) + len(g2_early))
+                    + ["late"] * (len(g1_late) + len(g2_late))
+                ),
             }
         )
         return utils_stats._pivot_analysis_data(data, x="Cond", y=["KPI"], hue="Time")
@@ -109,7 +118,9 @@ class TestRunPairwiseSignificance:
     @patch(_PATCH_NORMALITY, return_value=False)
     def test_returns_correct_columns(self, _mock_norm):
         pivot = self._make_pivot([1.0, 2.0, 3.0, 4.0, 5.0], [6.0, 7.0, 8.0, 9.0, 10.0])
-        result = utils_stats._run_pairwise_significance(pivot, "Cond", [1, 2], None, None)
+        result = utils_stats._run_pairwise_significance(
+            pivot, "Cond", [1, 2], None, None
+        )
         assert list(result.columns) == _EXPECTED_PAIRWISE_COLS
 
     # ------------------------------------------------------------------
@@ -119,7 +130,9 @@ class TestRunPairwiseSignificance:
     @patch(_PATCH_NORMALITY, return_value=False)
     def test_index_is_plain_pair_tuple_without_hue(self, _mock_norm):
         pivot = self._make_pivot([1.0, 2.0, 3.0, 4.0, 5.0], [6.0, 7.0, 8.0, 9.0, 10.0])
-        result = utils_stats._run_pairwise_significance(pivot, "Cond", [1, 2], None, None)
+        result = utils_stats._run_pairwise_significance(
+            pivot, "Cond", [1, 2], None, None
+        )
         assert not isinstance(result.index, pd.MultiIndex)
         assert result.index[0] == (1, 2)
 
@@ -147,7 +160,9 @@ class TestRunPairwiseSignificance:
     def test_uses_mann_whitney_for_non_normal_data(self, _mock_norm):
         g = list(range(1, 16))  # n = 15
         pivot = self._make_pivot(g, [v + 50 for v in g])
-        result = utils_stats._run_pairwise_significance(pivot, "Cond", [1, 2], None, None)
+        result = utils_stats._run_pairwise_significance(
+            pivot, "Cond", [1, 2], None, None
+        )
         row = result.iloc[0]
         assert row["Test"] == "Mann-Whitney U"
         assert "not normally distributed" in row["Note"]
@@ -162,7 +177,9 @@ class TestRunPairwiseSignificance:
         g1 = rng.normal(loc=0.0, scale=1.0, size=15).tolist()
         g2 = rng.normal(loc=0.0, scale=1.0, size=15).tolist()
         pivot = self._make_pivot(g1, g2)
-        result = utils_stats._run_pairwise_significance(pivot, "Cond", [1, 2], None, None)
+        result = utils_stats._run_pairwise_significance(
+            pivot, "Cond", [1, 2], None, None
+        )
         row = result.iloc[0]
         assert row["Test"] == "Welch's t-test"
         assert "normally distributed" in row["Note"]
@@ -175,7 +192,9 @@ class TestRunPairwiseSignificance:
         g1 = list(np.linspace(0, 0.5, 15))
         g2 = list(np.linspace(100, 100.5, 15))
         pivot = self._make_pivot(g1, g2)
-        result = utils_stats._run_pairwise_significance(pivot, "Cond", [1, 2], None, None)
+        result = utils_stats._run_pairwise_significance(
+            pivot, "Cond", [1, 2], None, None
+        )
         assert result.iloc[0]["Significant (α=0.05)"] == "Yes"
 
     # ------------------------------------------------------------------
@@ -185,7 +204,9 @@ class TestRunPairwiseSignificance:
     def test_marks_not_significant_for_identical_groups(self):
         g = list(range(1, 16))
         pivot = self._make_pivot(g, g)
-        result = utils_stats._run_pairwise_significance(pivot, "Cond", [1, 2], None, None)
+        result = utils_stats._run_pairwise_significance(
+            pivot, "Cond", [1, 2], None, None
+        )
         assert result.iloc[0]["Significant (α=0.05)"] == "No"
 
     # ------------------------------------------------------------------
@@ -199,7 +220,9 @@ class TestRunPairwiseSignificance:
         # "Mann-Whitney U" for n < 3.  This test documents the INTENDED behaviour and
         # will pass once the bug is fixed by nesting lines 147-154 inside the `else` branch.
         pivot = self._make_pivot([1.0, 2.0], [3.0, 4.0])  # n = 2 per group
-        result = utils_stats._run_pairwise_significance(pivot, "Cond", [1, 2], None, None)
+        result = utils_stats._run_pairwise_significance(
+            pivot, "Cond", [1, 2], None, None
+        )
         row = result.iloc[0]
         assert row["Test"] == "No test"
         assert row["Statistic"] is None

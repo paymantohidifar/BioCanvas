@@ -7,10 +7,15 @@ return processed :class:`pandas.DataFrame` objects from :meth:`process`, with co
 wrapped in a two-level :class:`pandas.MultiIndex` (panel class name for assay panels;
 ``(column_name, '')`` for :class:`Sample`).
 """
+
 import zipfile
-import pandas as pd # type: ignore
+import pandas as pd  # type: ignore
 import logging
-from biocanvas.utils.io import GeneralTable, GeneralAnalyteTable, normalize_sample_labels
+from biocanvas.utils.io import (
+    GeneralTable,
+    GeneralAnalyteTable,
+    normalize_sample_labels,
+)
 from biocanvas.utils.helpers import EmptyTableError
 
 logger = logging.getLogger(__name__)
@@ -32,6 +37,7 @@ class Sample(GeneralTable):
     Attributes:
         table: Raw sample table as read from Benchling.
     """
+
     def __init__(self, zip_ref: zipfile.ZipFile, file_name: str):
         super().__init__(zip_ref, file_name)
 
@@ -51,32 +57,38 @@ class Sample(GeneralTable):
             EmptyTableError: If the table is empty after dropping all-NaN columns.
             ValueError: If ``Sample`` or ``Sample Volume (mL)`` is missing.
         """
-        df = self.table.copy().dropna(axis='columns', how='all')
+        df = self.table.copy().dropna(axis="columns", how="all")
         if df.empty:
-            raise EmptyTableError('Sample table is empty!')
+            raise EmptyTableError("Sample table is empty!")
 
-        essential_cols = ['Entity', 'Sample Volume (mL)']
+        essential_cols = ["Entity", "Sample Volume (mL)"]
         for col in essential_cols:
             if df.get(col, None) is None:  # type: ignore
-                raise ValueError(f'Essential column {col} is missing from the Sample table!')
+                raise ValueError(
+                    f"Essential column {col} is missing from the Sample table!"
+                )
 
         # Update key columns' names in standard format
         df.rename(
             columns={
-                'Timepoint (h)': 'Time (h)',
-                'Parent Strain': 'Strain',
-                'Sample Volume (mL)': 'Sample Vol (ml)',
+                "Timepoint (h)": "Time (h)",
+                "Parent Strain": "Strain",
+                "Sample Volume (mL)": "Sample Vol (ml)",
             },
-            inplace=True
+            inplace=True,
         )
         # Update 'Sample' value to standard format
-        df['Sample'] = normalize_sample_labels(df['Entity'])  # type: ignore
-        
-        # Add 'Tank' column: get the first hyphen-segment
-        df['Tank'] = df['Sample'].str.split('-').str[0] # type: ignore
+        df["Sample"] = normalize_sample_labels(df["Entity"])  # type: ignore
 
-        proc_table = df[['Sample', 'Tank', 'Time (h)', 'Sample Vol (ml)']].set_index('Sample').fillna(0)  # type: ignore
-        return Sample._group_cols(proc_table) # type: ignore
+        # Add 'Tank' column: get the first hyphen-segment
+        df["Tank"] = df["Sample"].str.split("-").str[0]  # type: ignore
+
+        proc_table = (
+            df[["Sample", "Tank", "Time (h)", "Sample Vol (ml)"]]
+            .set_index("Sample")
+            .fillna(0)
+        )  # type: ignore
+        return Sample._group_cols(proc_table)  # type: ignore
         # return proc_table
 
     @staticmethod
@@ -89,7 +101,7 @@ class Sample(GeneralTable):
         Returns:
             The same data with a ``(column, '')`` column MultiIndex.
         """
-        new_columns = pd.MultiIndex.from_product([df.columns, ['']])
+        new_columns = pd.MultiIndex.from_product([df.columns, [""]])
         df.columns = new_columns
         return df
 
@@ -109,6 +121,7 @@ class Ferm(GeneralTable):
     Attributes:
         table: Raw fermentation or growth result table as read from Benchling.
     """
+
     def __init__(self, zip_ref: zipfile.ZipFile, file_name: str):
         super().__init__(zip_ref, file_name)
 
@@ -130,48 +143,58 @@ class Ferm(GeneralTable):
             ValueError: If the ``Sample`` column is missing.
         """
         # Sanity check
-        df = self.table.copy().dropna(axis='columns', how='all')
+        df = self.table.copy().dropna(axis="columns", how="all")
         if df.empty:
-            raise EmptyTableError('Ferm table is empty!')
+            raise EmptyTableError("Ferm table is empty!")
 
-        if 'Sample' not in df.columns:
-            raise ValueError('Sample column is missing from the Ferm table.')
-        df['Sample'] = normalize_sample_labels(df['Sample'])  # type: ignore
+        if "Sample" not in df.columns:
+            raise ValueError("Sample column is missing from the Ferm table.")
+        df["Sample"] = normalize_sample_labels(df["Sample"])  # type: ignore
 
         # Check if the table is in the old format
-        old_format_table: bool = df.columns.str.contains('Broth Mass').any() # type: ignore
-        
+        old_format_table: bool = df.columns.str.contains("Broth Mass").any()  # type: ignore
+
         # Compute the necessary columns
         if old_format_table:
-            df['Sample Density (g/ml)'] = df['Broth Mass (mg)'] / df['Sample Volume (uL)']
-            
+            df["Sample Density (g/ml)"] = (
+                df["Broth Mass (mg)"] / df["Sample Volume (uL)"]
+            )
+
         else:
-            df['Sample Density (g/ml)'] = df['Weight (g)'] * 1000 / df['Sample Volume (uL)']
-            df['DCW g/L'] = df['DCW (g/kg)'] * df['Sample Density (g/ml)']
+            df["Sample Density (g/ml)"] = (
+                df["Weight (g)"] * 1000 / df["Sample Volume (uL)"]
+            )
+            df["DCW g/L"] = df["DCW (g/kg)"] * df["Sample Density (g/ml)"]
 
         # Rename the columns to the standard names
         df.rename(
             columns={
-                '% Insoluble Solids': '% Insoluble Solids (g/g)',
-                'DCW g/L': 'DCW (g/L)',
+                "% Insoluble Solids": "% Insoluble Solids (g/g)",
+                "DCW g/L": "DCW (g/L)",
             },
             inplace=True,
-            errors='ignore'
-        )        
+            errors="ignore",
+        )
 
         # Aggegation functions for important columns
         agg_funcs = {
-            '% Insoluble Solids (g/g)': ('% Insoluble Solids (g/g)', 'mean'),
-            '% Insoluble Solids_std (g/g)': ('% Insoluble Solids (g/g)', 'std'),
-            'DCW (g/L)': ('DCW (g/L)', 'mean'),
-            'DCW_std (g/L)': ('DCW (g/L)', 'std'),
-            'Sample Density (g/ml)': ('Sample Density (g/ml)', 'mean'),
-            'Sample Density_std (g/ml)': ('Sample Density (g/ml)', 'std'),
+            "% Insoluble Solids (g/g)": ("% Insoluble Solids (g/g)", "mean"),
+            "% Insoluble Solids_std (g/g)": ("% Insoluble Solids (g/g)", "std"),
+            "DCW (g/L)": ("DCW (g/L)", "mean"),
+            "DCW_std (g/L)": ("DCW (g/L)", "std"),
+            "Sample Density (g/ml)": ("Sample Density (g/ml)", "mean"),
+            "Sample Density_std (g/ml)": ("Sample Density (g/ml)", "std"),
         }
-        proc_table: pd.DataFrame = df.groupby('Sample').agg(**agg_funcs  # type: ignore
-                                                            ).reset_index().set_index('Sample')  # type: ignore
+        proc_table: pd.DataFrame = (
+            df.groupby("Sample")
+            .agg(
+                **agg_funcs  # type: ignore
+            )
+            .reset_index()
+            .set_index("Sample")
+        )  # type: ignore
 
-        return Ferm._group_cols(proc_table, Ferm.get_classname()) # type: ignore
+        return Ferm._group_cols(proc_table, Ferm.get_classname())  # type: ignore
 
     @staticmethod
     def _group_cols(df: pd.DataFrame, class_name: str) -> pd.DataFrame:
@@ -280,6 +303,7 @@ class Brad(GeneralAnalyteTable):
     Attributes:
         table: Raw Bradford assay table as read from Benchling.
     """
+
     def process(self) -> pd.DataFrame:
         """Processes the Bradford panel and standardises the protein column name.
 
@@ -288,8 +312,10 @@ class Brad(GeneralAnalyteTable):
             the ``Brad`` outer MultiIndex level and ``Total Protein (g/L)`` at the
             inner level (renamed from ``Bradford Protein (g/L)``).
         """
-        return super().process().rename(
-            columns={'Bradford Protein (g/L)': 'Total Protein (g/L)'}, level=1
+        return (
+            super()
+            .process()
+            .rename(columns={"Bradford Protein (g/L)": "Total Protein (g/L)"}, level=1)
         )  # type: ignore
 
 
@@ -309,6 +335,7 @@ class Biochem(GeneralAnalyteTable):
     Attributes:
         table: Raw biochemistry assays table as read from Benchling.
     """
+
     def process(self) -> pd.DataFrame:
         """Processes the biochemistry panel and normalises legacy enzyme column names.
 
@@ -317,12 +344,16 @@ class Biochem(GeneralAnalyteTable):
             the ``Biochem`` outer MultiIndex level and standardised activity column
             names at the inner level.
         """
-        return super().process().rename(
-            columns={
-                'Cellobiohydrolase Activity (umoles/g/s)': 'pnpC Activity (umoles/g/s)',
-                'Cellobiohydrolase Activity (nmoles/mg)': 'pnpC Activity (umoles/g/s)',
-                'pnpC Activity (nmoles/mg)': 'pnpC Activity (umoles/g/s)',
-                'Beta-glucosidase Activity (nmoles/mg)': 'pnpG Activity (umoles/g/s)',
-            },
-            level=1
+        return (
+            super()
+            .process()
+            .rename(
+                columns={
+                    "Cellobiohydrolase Activity (umoles/g/s)": "pnpC Activity (umoles/g/s)",
+                    "Cellobiohydrolase Activity (nmoles/mg)": "pnpC Activity (umoles/g/s)",
+                    "pnpC Activity (nmoles/mg)": "pnpC Activity (umoles/g/s)",
+                    "Beta-glucosidase Activity (nmoles/mg)": "pnpG Activity (umoles/g/s)",
+                },
+                level=1,
+            )
         )  # type: ignore

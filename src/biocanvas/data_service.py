@@ -7,6 +7,7 @@ parsing, master-table construction, and plot-property filtering.  The App
 view layer instantiates one DataService and delegates every data operation
 to it.
 """
+
 import io
 import gc
 import copy
@@ -36,7 +37,7 @@ class DataService:
             once from passcodes.json.
     """
 
-    _PASSCODES_PATH: Path = Path(__file__).parent / 'passcodes.json'
+    _PASSCODES_PATH: Path = Path(__file__).parent / "passcodes.json"
     PROJECT_LIST: Dict[str, str] = auth.load_passcode_hashes(str(_PASSCODES_PATH))
 
     def __init__(self) -> None:
@@ -89,13 +90,15 @@ class DataService:
         self.tabs_dir = f"{self.results_dir}/processed_tables"
         self.figs_dir = f"{self.results_dir}/plots"
         logger.debug("Setting up output directories under '%s'", self.root_dir)
-        utils_io.setup_output_dirs([
-            self.root_dir,
-            self.logs_dir,
-            self.results_dir,
-            self.tabs_dir,
-            self.figs_dir,
-        ])
+        utils_io.setup_output_dirs(
+            [
+                self.root_dir,
+                self.logs_dir,
+                self.results_dir,
+                self.tabs_dir,
+                self.figs_dir,
+            ]
+        )
         logging_config.setup_logging(
             log_level=log_level,
             log_file=self.logs_dir + "/biocanvas_debug.log",
@@ -115,7 +118,9 @@ class DataService:
     # Project-module loading
     # ------------------------------------------------------------------
 
-    def load_project_modules(self, project_name: str) -> Tuple[bool, List[helpers.LogEntry]]:
+    def load_project_modules(
+        self, project_name: str
+    ) -> Tuple[bool, List[helpers.LogEntry]]:
         """Loads meta, benchling, ferm_process, and config modules for the project.
 
         Also deep-copies the plot-property dicts from the config module.
@@ -134,7 +139,9 @@ class DataService:
             logger.debug("Loading project modules from '%s'", subpackage_path)
             self.meta_module = utils_io.load_module(f"{subpackage_path}.meta")
             self.benchling_module = utils_io.load_module(f"{subpackage_path}.benchling")
-            self.ferm_process_module = utils_io.load_module(f"{subpackage_path}.ferm_process")
+            self.ferm_process_module = utils_io.load_module(
+                f"{subpackage_path}.ferm_process"
+            )
             self.config_module = utils_io.load_module(f"{subpackage_path}.config")
             self.bench_plot_properties = copy.deepcopy(
                 self.config_module.bench_plot_properties  # type: ignore
@@ -143,15 +150,23 @@ class DataService:
                 self.config_module.process_plot_properties  # type: ignore
             )
             log_entries.append(
-                (f"Project '{project_name}' loaded successfully. Happy analysis!", 'success')
+                (
+                    f"Project '{project_name}' loaded successfully. Happy analysis!",
+                    "success",
+                )
             )
             logger.info("All project modules loaded for '%s'", project_name)
             return True, log_entries
         except ImportError as e:
             log_entries.append(
-                (f"Could not import one or more modules from '{project_name}' (see logs for details)", 'error')
+                (
+                    f"Could not import one or more modules from '{project_name}' (see logs for details)",
+                    "error",
+                )
             )
-            logger.error("ImportError loading project '%s': %s", project_name, e, exc_info=True)
+            logger.error(
+                "ImportError loading project '%s': %s", project_name, e, exc_info=True
+            )
             return False, log_entries
 
     # ------------------------------------------------------------------
@@ -178,13 +193,20 @@ class DataService:
                 self.config_module.SHAREPOINT_DATA_DIR,  # type: ignore
             )
             items = self.local_client.get_item_names()
-            exp_names = [item for item in items if item.lower().startswith('exp')]
+            exp_names = [item for item in items if item.lower().startswith("exp")]
             logger.info("Found %d experiment(s) in the local database", len(exp_names))
             if not exp_names:
-                log_entries.append(("No experiments found in the project directory.", 'warning'))
+                log_entries.append(
+                    ("No experiments found in the project directory.", "warning")
+                )
             return exp_names, log_entries
         except Exception as e:
-            log_entries.append(("Error connecting to the local database (see logs for details)", 'error'))
+            log_entries.append(
+                (
+                    "Error connecting to the local database (see logs for details)",
+                    "error",
+                )
+            )
             logger.error("Local database connection failed: %s", e, exc_info=True)
             return [], log_entries
 
@@ -207,23 +229,29 @@ class DataService:
             ``(meta_df, bench_df, process_df, log_entries)``.  On fatal failure
             all three DataFrames are empty.
         """
-        log_entries: List[helpers.LogEntry] = [(exp_name, 'header')]
+        log_entries: List[helpers.LogEntry] = [(exp_name, "header")]
 
         try:
             # --- Meta.csv ---
-            meta_file_loaded = self.local_client.load_data(exp_name + '/Meta.csv')
+            meta_file_loaded = self.local_client.load_data(exp_name + "/Meta.csv")
             logger.info("Loaded Meta.csv for '%s'", exp_name)
             meta_table, meta_msgs = self._process_meta_file(
-                io.StringIO(meta_file_loaded.decode('utf-8')), exp_name
+                io.StringIO(meta_file_loaded.decode("utf-8")), exp_name
             )
             for msg in meta_msgs:
-                log_entries.append((msg, 'success' if not meta_table.empty else 'warning'))
+                log_entries.append(
+                    (msg, "success" if not meta_table.empty else "warning")
+                )
             if meta_table.empty:
-                raise helpers.EmptyTableError('Meta table is empty — skipping experiment.')
+                raise helpers.EmptyTableError(
+                    "Meta table is empty — skipping experiment."
+                )
 
             # --- Benchling.zip ---
             try:
-                bench_zip_loaded = self.local_client.load_data(exp_name + '/Benchling.zip')
+                bench_zip_loaded = self.local_client.load_data(
+                    exp_name + "/Benchling.zip"
+                )
                 logger.info("Loaded Benchling.zip for '%s'", exp_name)
                 consolidated_bench_table, bench_msgs = self._process_benchling_files(
                     io.BytesIO(bench_zip_loaded), meta_table
@@ -233,13 +261,20 @@ class DataService:
             except FileNotFoundError:
                 consolidated_bench_table = pd.DataFrame()
                 log_entries.append(
-                    ("Benchling zip file is not available. Skipping Benchling data!", 'warning')
+                    (
+                        "Benchling zip file is not available. Skipping Benchling data!",
+                        "warning",
+                    )
                 )
                 logger.warning("Benchling.zip not found for '%s'", exp_name)
             except Exception as e:
                 consolidated_bench_table = pd.DataFrame()
                 log_entries.append(
-                    (f"Error processing Benchling zipped file. (see logs for details). Skipping Benchling data!", 'error'))
+                    (
+                        "Error processing Benchling zipped file. (see logs for details). Skipping Benchling data!",
+                        "error",
+                    )
+                )
                 logger.error("Failed to process Benchling.zip: %s", e, exc_info=True)
 
             # --- Eve.zip / Pi.zip (try known filenames before directory listing) ---
@@ -249,39 +284,58 @@ class DataService:
                 process_zip_loaded: Optional[bytes] = None
                 for candidate, panel in utils_io.resolve_process_zip_candidates():
                     try:
-                        process_zip_loaded = self.local_client.load_data(exp_name + f'/{candidate}')
+                        process_zip_loaded = self.local_client.load_data(
+                            exp_name + f"/{candidate}"
+                        )
                         process_file = candidate
                         process_panel = panel
                         break
                     except FileNotFoundError:
                         pass
-                if process_file is None or process_panel is None or process_zip_loaded is None:
-                    filenames = self.local_client.get_item_names(exp_name + '/')
-                    process_file, process_panel = utils_io.detect_process_file_type(filenames)
-                    process_zip_loaded = self.local_client.load_data(exp_name + f'/{process_file}')
+                if (
+                    process_file is None
+                    or process_panel is None
+                    or process_zip_loaded is None
+                ):
+                    filenames = self.local_client.get_item_names(exp_name + "/")
+                    process_file, process_panel = utils_io.detect_process_file_type(
+                        filenames
+                    )
+                    process_zip_loaded = self.local_client.load_data(
+                        exp_name + f"/{process_file}"
+                    )
                 logger.info("Loaded %s for '%s'", process_file, exp_name)
-                consolidated_process_table, process_msgs = self._process_ferm_process_panels(
-                    io.BytesIO(process_zip_loaded), meta_table, process_panel
+                consolidated_process_table, process_msgs = (
+                    self._process_ferm_process_panels(
+                        io.BytesIO(process_zip_loaded), meta_table, process_panel
+                    )
                 )
                 for msg in process_msgs:
                     log_entries.append((msg, logging_config.classify_msg_level(msg)))
             except FileNotFoundError:
                 consolidated_process_table = pd.DataFrame()
-                log_entries.append((
-                    "Eve/Pi zip file is not available. Skipping Eve/Pi data and "
-                    "creating a mock Eve/Pi table!",
-                    'warning',
-                ))
+                log_entries.append(
+                    (
+                        "Eve/Pi zip file is not available. Skipping Eve/Pi data and "
+                        "creating a mock Eve/Pi table!",
+                        "warning",
+                    )
+                )
                 logger.warning("Eve/Pi zip not found for '%s'", exp_name)
             except Exception as e:
                 consolidated_process_table = pd.DataFrame()
-                log_entries.append((
-                    f"Error processing Eve/Pi zipped file from '{exp_name}' (see logs for details)."
-                    "Skipping Eve/Pi data!",
-                    'error',
-                ))
+                log_entries.append(
+                    (
+                        f"Error processing Eve/Pi zipped file from '{exp_name}' (see logs for details)."
+                        "Skipping Eve/Pi data!",
+                        "error",
+                    )
+                )
                 logger.error(
-                    "Failed to process Eve/Pi zip for '%s': %s", exp_name, e, exc_info=True
+                    "Failed to process Eve/Pi zip for '%s': %s",
+                    exp_name,
+                    e,
+                    exc_info=True,
                 )
 
             # --- Augment tables and calculate Titer, Rate, and Yield (TRY) KPIs ---
@@ -299,7 +353,7 @@ class DataService:
             )
             for msg in augmented_tables.output_messages:
                 log_entries.append((msg, logging_config.classify_msg_level(msg)))
-            log_entries.append(('', 'separator'))
+            log_entries.append(("", "separator"))
 
             logger.info("Successfully processed experiment '%s'", exp_name)
             return (
@@ -311,16 +365,22 @@ class DataService:
 
         except (FileNotFoundError, helpers.EmptyTableError) as e:
             log_entries.append(
-                ("Meta file unavailable or empty — skipping experiment (see logs for details).", 'error')
+                (
+                    "Meta file unavailable or empty — skipping experiment (see logs for details).",
+                    "error",
+                )
             )
-            log_entries.append(('', 'separator'))
+            log_entries.append(("", "separator"))
             logger.warning("Skipping experiment '%s': %s", exp_name, e)
             return pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), log_entries
         except Exception as e:
             log_entries.append(
-                ("Unexpected error processing Meta file — skipping experiment (see logs for details).", 'error')
+                (
+                    "Unexpected error processing Meta file — skipping experiment (see logs for details).",
+                    "error",
+                )
             )
-            log_entries.append(('', 'separator'))
+            log_entries.append(("", "separator"))
             logger.error(
                 "Unexpected error for experiment '%s': %s", exp_name, e, exc_info=True
             )
@@ -373,31 +433,32 @@ class DataService:
                 exp_process_li.append(process_df)
             del meta_df, bench_df, process_df, log_entries
 
-        all_entries.append(("Sequential processing complete", 'header'))
+        all_entries.append(("Sequential processing complete", "header"))
         logger.debug("Sequential processing complete")
 
         # Concatenate per-experiment tables into master DataFrames
         if exp_meta_li:
             self.master_meta_table = pd.concat(
-                exp_meta_li, axis='index', ignore_index=True
+                exp_meta_li, axis="index", ignore_index=True
             )
-            self.master_meta_table.set_index(['Exp', 'Tank'], drop=True, inplace=True)  # type: ignore
-            self.master_meta_table['Run'] = [
-                f'{idx[0]}-{idx[1]}' for idx in self.master_meta_table.index.values # type: ignore
+            self.master_meta_table.set_index(["Exp", "Tank"], drop=True, inplace=True)  # type: ignore
+            self.master_meta_table["Run"] = [
+                f"{idx[0]}-{idx[1]}"
+                for idx in self.master_meta_table.index.values  # type: ignore
             ]
         if exp_bench_li:
             self.master_bench_table = pd.concat(
-                exp_bench_li, axis='index', ignore_index=True
+                exp_bench_li, axis="index", ignore_index=True
             )
         if exp_process_li:
             self.master_process_table = pd.concat(
-                exp_process_li, axis='index', ignore_index=True
+                exp_process_li, axis="index", ignore_index=True
             )
-        
+
         # Free up memory
         del exp_meta_li, exp_bench_li, exp_process_li
         gc.collect()
-        
+
         return all_entries
 
     def save_master_tables(self, save: bool) -> bool:
@@ -412,18 +473,18 @@ class DataService:
         if not save:
             return False
 
-        meta_path = f'{self.tabs_dir}/master_meta_table.csv'
-        self.master_meta_table.to_csv(meta_path) # type: ignore
+        meta_path = f"{self.tabs_dir}/master_meta_table.csv"
+        self.master_meta_table.to_csv(meta_path)  # type: ignore
         logger.info("Saved master meta table to '%s'", meta_path)
 
-        bench_path = f'{self.tabs_dir}/master_bench_table.csv'
-        helpers.flatten_multiindex_columns(self.master_bench_table.round(3)).to_csv( # type: ignore
+        bench_path = f"{self.tabs_dir}/master_bench_table.csv"
+        helpers.flatten_multiindex_columns(self.master_bench_table.round(3)).to_csv(  # type: ignore
             bench_path, index=False
         )
         logger.info("Saved master benchling table to '%s'", bench_path)
 
-        process_path = f'{self.tabs_dir}/master_process_table.csv'
-        helpers.flatten_multiindex_columns(self.master_process_table.round(3)).to_csv( # type: ignore
+        process_path = f"{self.tabs_dir}/master_process_table.csv"
+        helpers.flatten_multiindex_columns(self.master_process_table.round(3)).to_csv(  # type: ignore
             process_path, index=False
         )
         logger.info("Saved master process table to '%s'", process_path)
@@ -447,8 +508,8 @@ class DataService:
             ``(processed_table, output_messages)`` — ``processed_table`` is
             empty if processing failed.
         """
-        exp_id = exp_title.split(' ')[1]
-        MetaClass = getattr(self.meta_module, 'Meta')
+        exp_id = exp_title.split(" ")[1]
+        MetaClass = getattr(self.meta_module, "Meta")
         meta = MetaClass(file_content, exp_id)
         processed_table = meta.proc_table
         num_seed_tanks, num_ferm_tanks = meta.get_num_tanks()
@@ -502,41 +563,49 @@ class DataService:
         output_messages: List[str] = []
 
         # Get the passed tanks from the metadata table
-        passed_tanks: List[str] = meta_table['Tank'].tolist()  # type: ignore
+        passed_tanks: List[str] = meta_table["Tank"].tolist()  # type: ignore
 
         with ZipFile(file_content) as zip_ref:
             # Get the sorted filenames from the zip archive
             file_names = zip_ref.namelist()
-            
+
             # Process each file
             for file_name in file_names:
                 try:
                     # Get the panel name from the file name
-                    panel_name = file_name.split('.')[-2].capitalize()    
+                    panel_name = file_name.split(".")[-2].capitalize()
                     # Skip processing if the panel name is not in the list of accepted panel names
                     if panel_name not in self.config_module.PANEL_DISPLAY_NAMES:  # type: ignore
                         skipped_panel_names.append(panel_name)
-                        output_messages.append(f"Did not recognize {panel_name} Benchling panel name.")
-                        logger.warning("Did not recognize %s Benchling panel name.", panel_name)
+                        output_messages.append(
+                            f"Did not recognize {panel_name} Benchling panel name."
+                        )
+                        logger.warning(
+                            "Did not recognize %s Benchling panel name.", panel_name
+                        )
                         continue
-                    
+
                     # Process the panel
                     BenchlingPanel = getattr(self.benchling_module, panel_name)
                     processed_table = BenchlingPanel(zip_ref, file_name).process()
                     if processed_table.empty:
                         skipped_panel_names.append(panel_name)
-                        output_messages.append(f"Processed {panel_name} Benchling panel is empty.")
-                        logger.warning("Processed %s Benchling panel is empty.", panel_name)
+                        output_messages.append(
+                            f"Processed {panel_name} Benchling panel is empty."
+                        )
+                        logger.warning(
+                            "Processed %s Benchling panel is empty.", panel_name
+                        )
                         continue
 
                     display_name = self.config_module.PANEL_DISPLAY_NAMES.get(  # type: ignore
                         panel_name, panel_name
                     )
                     if display_name != panel_name:
-                        processed_table.columns = (
-                            processed_table.columns.set_levels([display_name], level=0)
+                        processed_table.columns = processed_table.columns.set_levels(
+                            [display_name], level=0
                         )
-                    
+
                     processed_panel_names.append(panel_name)
                     bench_table_li.append(processed_table)
                     output_messages.append(
@@ -546,37 +615,50 @@ class DataService:
                     )
                     logger.info(
                         "Processed '%s' Benchling panel with %s samples.",
-                        panel_name, processed_table.shape[0],
+                        panel_name,
+                        processed_table.shape[0],
                     )
                 except Exception as e:
-                    output_messages.append(f"Processing failed for {panel_name}: {e}. Skipping this panel!") # type: ignore
-                    logger.warning("Processing failed for %s: %s. Skipping this panel!", panel_name, e) # type: ignore
+                    output_messages.append(
+                        f"Processing failed for {panel_name}: {e}. Skipping this panel!"
+                    )  # type: ignore
+                    logger.warning(
+                        "Processing failed for %s: %s. Skipping this panel!",
+                        panel_name,
+                        e,
+                    )  # type: ignore
 
         # Log the skipped and processed panels
         logger.info(f"Skipped Benchling panels: {skipped_panel_names}")
         logger.info(f"Processed Benchling panels: {processed_panel_names}")
 
         # Abort if the Sample panel was skipped because it holds essential information for the analysis
-        if 'Sample' in skipped_panel_names:
+        if "Sample" in skipped_panel_names:
             logger.warning("Essential Sample could not be processed! Cannot continue.")
-            output_messages.append("Essential Sample could not be processed! Cannot continue.")
+            output_messages.append(
+                "Essential Sample could not be processed! Cannot continue."
+            )
             return pd.DataFrame(), output_messages
 
         if len(processed_panel_names) == 0:
-            logger.warning("Could not consolidate any Benchling panels. Returning an empty dataframe.")
-            output_messages.append("Could not consolidate any Benchling panels. Returning an empty dataframe.")
+            logger.warning(
+                "Could not consolidate any Benchling panels. Returning an empty dataframe."
+            )
+            output_messages.append(
+                "Could not consolidate any Benchling panels. Returning an empty dataframe."
+            )
             return pd.DataFrame(), output_messages
 
         # Combine all processed tables into a single DataFrame and filter to only include the passed tanks
-        consolidated_table = pd.concat(bench_table_li, axis='columns')
-        consolidated_table = consolidated_table[ # type: ignore
-            consolidated_table['Tank'].isin(passed_tanks) # type: ignore
-        ].sort_values(by=['Tank', 'Time (h)'])        
-        
+        consolidated_table = pd.concat(bench_table_li, axis="columns")
+        consolidated_table = consolidated_table[  # type: ignore
+            consolidated_table["Tank"].isin(passed_tanks)  # type: ignore
+        ].sort_values(by=["Tank", "Time (h)"])
+
         # Clean up the memory
         del bench_table_li
         gc.collect()
-        return consolidated_table.reset_index(), output_messages # type: ignore
+        return consolidated_table.reset_index(), output_messages  # type: ignore
 
     def _process_ferm_process_panels(
         self,
@@ -621,26 +703,27 @@ class DataService:
 
         # Get the passed tanks from the metadata table
         passed_tanks: Dict[int, str] = {
-            int(tank[1:]): tank # type: ignore
-            for tank in meta_table['Tank'].values  # type: ignore
-            if not tank.lower().startswith('s') # type: ignore
+            int(tank[1:]): tank  # type: ignore
+            for tank in meta_table["Tank"].values  # type: ignore
+            if not tank.lower().startswith("s")  # type: ignore
         }
 
         # Get the process panel class
         ProcessPanel = getattr(self.ferm_process_module, process_panel)
 
         with ZipFile(file_content) as zip_ref:
-            
             # Get the sorted filenames from the zip archive and sort by tank number
             filenames = sorted(
-                zip_ref.namelist(), key=lambda el: int(el.split('.')[-2])
+                zip_ref.namelist(), key=lambda el: int(el.split(".")[-2])
             )
 
             # Process each tank
             for filename in filenames:
                 try:
-                    tank_num = int(filename.split('.')[-2])
-                    logger.info(f"Processing Eve/Pi file: {filename}, tank number: {tank_num}")
+                    tank_num = int(filename.split(".")[-2])
+                    logger.info(
+                        f"Processing Eve/Pi file: {filename}, tank number: {tank_num}"
+                    )
 
                     # Skip processing if the tank number is not in the list of passed tanks
                     if tank_num not in passed_tanks.keys():
@@ -649,12 +732,14 @@ class DataService:
                         continue
 
                     # Process the tank
-                    proc_table = ProcessPanel(zip_ref, filename, passed_tanks[tank_num]).process()
+                    proc_table = ProcessPanel(
+                        zip_ref, filename, passed_tanks[tank_num]
+                    ).process()
                     if proc_table.empty:
                         skipped_tanks.append(str(tank_num))
                         output_messages.append(f"Processed tank {tank_num} is empty.")
                         logger.warning("Processed tank %s is empty!", tank_num)
-                        continue  
+                        continue
                     processed_tanks.append(str(tank_num))
                     process_table_li.append(proc_table)
                     output_messages.append(
@@ -666,22 +751,33 @@ class DataService:
                         passed_tanks[tank_num],
                     )
                 except Exception as e:
-                    skipped_tanks.append(str(tank_num)) # type: ignore
-                    output_messages.append(f"Processing failed for tank {tank_num}: {e}. Skipping this tank.") # type: ignore
-                    logger.warning("Processing failed for tank %s: %s. Skipping this tank!", tank_num, e) # type: ignore
+                    skipped_tanks.append(str(tank_num))  # type: ignore
+                    output_messages.append(
+                        f"Processing failed for tank {tank_num}: {e}. Skipping this tank."
+                    )  # type: ignore
+                    logger.warning(
+                        "Processing failed for tank %s: %s. Skipping this tank!",
+                        tank_num,
+                        e,
+                    )  # type: ignore
 
         logger.info("Skipped Eve/Pi tanks: %s.", skipped_tanks)
         logger.info("Processed Eve/Pi tanks: %s.", processed_tanks)
 
         if len(processed_tanks) == 0:
-            logger.warning("No Eve/Pi tanks processed successfully. Returning an empty dataframe.")
-            output_messages.append("No Eve/Pi tanks processed successfully. Returning an empty dataframe.") # type: ignore
+            logger.warning(
+                "No Eve/Pi tanks processed successfully. Returning an empty dataframe."
+            )
+            output_messages.append(
+                "No Eve/Pi tanks processed successfully. Returning an empty dataframe."
+            )  # type: ignore
             return pd.DataFrame(), output_messages
 
-        result = pd.concat(process_table_li, axis='index', ignore_index=True)
+        result = pd.concat(process_table_li, axis="index", ignore_index=True)
         logger.info(
             "Consolidated %s Eve/Pi tables, %s samples.",
-            len(process_table_li), result.shape[0],
+            len(process_table_li),
+            result.shape[0],
         )
         # Clean up the memory
         del process_table_li
@@ -706,8 +802,8 @@ class DataService:
             List of ``(Exp, Tank)`` MultiIndex tuples.
         """
         if filter_keys:
-            query_str = ' & '.join(
-                [f'`{k}` {v[0]} {v[1]}' for k, v in filter_keys.items()]
+            query_str = " & ".join(
+                [f"`{k}` {v[0]} {v[1]}" for k, v in filter_keys.items()]
             )
             return list(self.master_meta_table.query(query_str).index)  # type: ignore
         return list(self.master_meta_table.index)  # type: ignore
@@ -720,14 +816,16 @@ class DataService:
         """Returns rows of *master_table* whose (Exp, Tank) pair is in *selected_exp_tank*."""
         if master_table.empty or not selected_exp_tank:
             return pd.DataFrame()
-        exp_col = ('Exp', '')
-        tank_col = ('Tank', '')
-        keys = pd.MultiIndex.from_tuples(selected_exp_tank, names=['Exp', 'Tank'])
-        row_keys = pd.MultiIndex.from_arrays([ # type: ignore
-            master_table[exp_col].values, # type: ignore
-            master_table[tank_col].values, # type: ignore
-        ])
-        return master_table.loc[row_keys.isin(keys)].dropna(axis='columns', how='all')  # type: ignore
+        exp_col = ("Exp", "")
+        tank_col = ("Tank", "")
+        keys = pd.MultiIndex.from_tuples(selected_exp_tank, names=["Exp", "Tank"])
+        row_keys = pd.MultiIndex.from_arrays(
+            [  # type: ignore
+                master_table[exp_col].values,  # type: ignore
+                master_table[tank_col].values,  # type: ignore
+            ]
+        )
+        return master_table.loc[row_keys.isin(keys)].dropna(axis="columns", how="all")  # type: ignore
 
     @staticmethod
     def _refresh_col_exist(
@@ -738,8 +836,8 @@ class DataService:
         col_set = set(filtered_columns)
         for panel, kpis in plot_properties.items():
             for _, content in kpis.items():
-                content['col_exist'] = [
-                    1 if (panel, col) in col_set else 0 for col in content['cols']
+                content["col_exist"] = [
+                    1 if (panel, col) in col_set else 0 for col in content["cols"]
                 ]
 
     @helpers.profile_method
@@ -763,9 +861,12 @@ class DataService:
         filtered_bench_table = pd.DataFrame()
         if (not self.master_bench_table.empty) and len(selected_exp_tank) > 0:
             filtered_bench_table = self._filter_master_table_by_exp_tank(
-                self.master_bench_table, selected_exp_tank  # type: ignore
+                self.master_bench_table,
+                selected_exp_tank,  # type: ignore
             )
-            self._refresh_col_exist(self.bench_plot_properties, filtered_bench_table.columns)
+            self._refresh_col_exist(
+                self.bench_plot_properties, filtered_bench_table.columns
+            )
 
         return filtered_bench_table
 
@@ -791,9 +892,12 @@ class DataService:
 
         if (not self.master_process_table.empty) and len(selected_exp_tank) > 0:
             filtered_process_table = self._filter_master_table_by_exp_tank(
-                self.master_process_table, selected_exp_tank  # type: ignore
+                self.master_process_table,
+                selected_exp_tank,  # type: ignore
             )
-            self._refresh_col_exist(self.process_plot_properties, filtered_process_table.columns)  # type: ignore
+            self._refresh_col_exist(
+                self.process_plot_properties, filtered_process_table.columns
+            )  # type: ignore
 
         return filtered_process_table
 
@@ -820,6 +924,7 @@ class AugmentTables:
         output_messages: Human-readable status or error messages produced by each
             augmentation step, in order of execution.
     """
+
     def __init__(
         self,
         meta: pd.DataFrame,
@@ -829,7 +934,7 @@ class AugmentTables:
         self.augmented_meta_table: pd.DataFrame = meta.copy(deep=True)
         self.augmented_bench_table: pd.DataFrame = bench.copy(deep=False)
         self.augmented_process_table: pd.DataFrame = process.copy(deep=False)
-        self._meta_by_tank: pd.DataFrame = meta.set_index('Tank') # type: ignore
+        self._meta_by_tank: pd.DataFrame = meta.set_index("Tank")  # type: ignore
         self.output_messages: List[str] = []
 
     @helpers.profile_method
@@ -902,29 +1007,45 @@ class AugmentTables:
         try:
             # If the process table is empty, create a synthetic Tank/Time scaffold from the metadata table
             if self.augmented_process_table.empty:
-                ferm_meta = self.augmented_meta_table[ # type: ignore
-                    ~self.augmented_meta_table['Tank'].apply(helpers.is_seed_tank)  # type: ignore
+                ferm_meta = self.augmented_meta_table[  # type: ignore
+                    ~self.augmented_meta_table["Tank"].apply(helpers.is_seed_tank)  # type: ignore
                 ]
                 scaffold_parts: List[pd.DataFrame] = []
-                for tank, eft in zip(ferm_meta['Tank'].values, ferm_meta['EFT (h)'].values):  # type: ignore
+                for tank, eft in zip(
+                    ferm_meta["Tank"].values, ferm_meta["EFT (h)"].values
+                ):  # type: ignore
                     n_pts = int(eft * 60 + 1)  # type: ignore
-                    scaffold_parts.append(pd.DataFrame({
-                        'Tank': [tank] * n_pts,
-                        'Time (h)': np.linspace(0, eft, n_pts),  # type: ignore
-                    }))
+                    scaffold_parts.append(
+                        pd.DataFrame(
+                            {
+                                "Tank": [tank] * n_pts,
+                                "Time (h)": np.linspace(0, eft, n_pts),  # type: ignore
+                            }
+                        )
+                    )
                 if scaffold_parts:
-                    self.augmented_process_table = pd.concat(scaffold_parts, ignore_index=True)
-                logger.info("Successfully created synthetic Tank/Time scaffold from metadata table.")
+                    self.augmented_process_table = pd.concat(
+                        scaffold_parts, ignore_index=True
+                    )
+                logger.info(
+                    "Successfully created synthetic Tank/Time scaffold from metadata table."
+                )
 
             # Augment the process table with the 'Exp' key column and apply _add_key_cols_to_eve per-tank group
-            self.augmented_process_table['Exp'] = self.augmented_meta_table.loc[0, 'Exp'] # type: ignore
-            self.augmented_process_table = self.augmented_process_table.groupby('Tank', group_keys=False).apply( # type: ignore
+            self.augmented_process_table["Exp"] = self.augmented_meta_table.loc[
+                0, "Exp"
+            ]  # type: ignore
+            self.augmented_process_table = self.augmented_process_table.groupby(
+                "Tank", group_keys=False
+            ).apply(  # type: ignore
                 self._add_key_cols_to_eve, panel_display_names
             )
             self.output_messages.append("Successfully augmented Eve table.")
             logger.info("Successfully augmented Eve table.")
         except Exception as e:
-            self.output_messages.append("Something went wrong when augmenting Eve table (see logs for details).")
+            self.output_messages.append(
+                "Something went wrong when augmenting Eve table (see logs for details)."
+            )
             logger.exception(f"Failed to augment Eve table: {e}.")
 
     def _augment_bench_table(
@@ -951,26 +1072,43 @@ class AugmentTables:
         try:
             # If the bench table is not empty, augment it with the 'Exp' key column and apply _add_key_cols_to_bench per-tank group
             if not self.augmented_bench_table.empty:
-                self.augmented_bench_table['Exp'] = self.augmented_meta_table.loc[0, 'Exp'] # type: ignore
+                self.augmented_bench_table["Exp"] = self.augmented_meta_table.loc[
+                    0, "Exp"
+                ]  # type: ignore
                 # augmented_bench_table's columns mix MultiIndex tuples (panel, analyte)
                 # with flat labels ('Tank', 'Exp'), so pandas can't lexsort them; the
                 # resulting PerformanceWarning on the grouping-column drop below is
                 # informational only and safe to suppress.
                 with warnings.catch_warnings():
-                    warnings.filterwarnings('ignore', category=pd.errors.PerformanceWarning)
-                    self.augmented_bench_table = self.augmented_bench_table.groupby('Tank', group_keys=False).apply( # type: ignore
-                        self._add_key_cols_to_bench, panels_for_try, panel_display_names, carbon_panels
+                    warnings.filterwarnings(
+                        "ignore", category=pd.errors.PerformanceWarning
                     )
-                self.output_messages.append("Successfully augmented Benchling result table.")
+                    self.augmented_bench_table = self.augmented_bench_table.groupby(
+                        "Tank", group_keys=False
+                    ).apply(  # type: ignore
+                        self._add_key_cols_to_bench,
+                        panels_for_try,
+                        panel_display_names,
+                        carbon_panels,
+                    )
+                self.output_messages.append(
+                    "Successfully augmented Benchling result table."
+                )
                 logger.info("Successfully augmented Benchling result table.")
             else:
                 logger.info("Benchling result table is empty, skipping augmentation.")
-                self.output_messages.append("Benchling result table is empty, skipping augmentation.")
+                self.output_messages.append(
+                    "Benchling result table is empty, skipping augmentation."
+                )
         except Exception as e:
-            self.output_messages.append("Something went wrong when augmenting Benchling result table (see logs for details).")
+            self.output_messages.append(
+                "Something went wrong when augmenting Benchling result table (see logs for details)."
+            )
             logger.exception(f"Failed to augment Benchling result table: {e}.")
 
-    def _select_final_augmented_columns(self, process_cols_to_keep: List[str], bench_cols_to_keep: List[str]) -> None:
+    def _select_final_augmented_columns(
+        self, process_cols_to_keep: List[str], bench_cols_to_keep: List[str]
+    ) -> None:
         """Restrict both output tables to the requested columns and apply MultiIndex wrapping.
 
         Drops any column not present in the respective keep list.  Columns listed in
@@ -986,24 +1124,28 @@ class AugmentTables:
         """
         # Select process columns to appear in the final augmented table
         all_process_cols = self.augmented_process_table.columns
-        self.augmented_process_table = self.augmented_process_table[ # type: ignore
+        self.augmented_process_table = self.augmented_process_table[  # type: ignore
             [col for col in process_cols_to_keep if col in all_process_cols]
         ]
         # Group process columns under 'Process' outer level
         self.augmented_process_table.columns = pd.MultiIndex.from_tuples(
             [
-                (col, '') if col in ['Exp', 'Tank', 'Replicate', 'Time (h)'] else ('Process', col) # type: ignore
-                for col in self.augmented_process_table.columns # type: ignore
+                (col, "")
+                if col in ["Exp", "Tank", "Replicate", "Time (h)"]
+                else ("Process", col)  # type: ignore
+                for col in self.augmented_process_table.columns  # type: ignore
             ]
         )
 
         # Select bench columns to appear in the final augmented table
         all_bench_cols = self.augmented_bench_table.columns
-        self.augmented_bench_table = self.augmented_bench_table[ # type: ignore
+        self.augmented_bench_table = self.augmented_bench_table[  # type: ignore
             [col for col in bench_cols_to_keep if col in all_bench_cols]
         ]
 
-    def _add_key_cols_to_eve(self, grp: pd.DataFrame, panel_display_names: Dict[str, str]) -> pd.DataFrame:
+    def _add_key_cols_to_eve(
+        self, grp: pd.DataFrame, panel_display_names: Dict[str, str]
+    ) -> pd.DataFrame:
         """Adds derived feeding, mass-balance, and replicate columns to one tank's process group.
 
         For seed tanks (name starts with ``'S'``) only ``Replicate`` is set; all other
@@ -1033,88 +1175,146 @@ class AugmentTables:
         """
         # Set the 'Tank' and 'Replicate' columns for the group
         tank_meta = self._meta_by_tank.loc[grp.name, :]  # type: ignore
-        grp['Tank'] = grp.name # type: ignore
-        grp['Replicate'] = int(tank_meta['Replicate']) # type: ignore
+        grp["Tank"] = grp.name  # type: ignore
+        grp["Replicate"] = int(tank_meta["Replicate"])  # type: ignore
 
         if helpers.is_seed_tank(grp.name):  # type: ignore
             return grp
         else:
             # If the tank is a fermentation tank, add the feeding volumes, mass balance, and other process metrics
-            for feed_type in ['Feed', 'Co-feed', 'Bolus', 'Acid', 'Base']:
-                if tank_meta[f'{feed_type} Source'] != 'NA':
-                    if tank_meta[f'Eve/Pi Controlled {feed_type}'].lower() == 'yes': # type: ignore
-                        
+            for feed_type in ["Feed", "Co-feed", "Bolus", "Acid", "Base"]:
+                if tank_meta[f"{feed_type} Source"] != "NA":
+                    if tank_meta[f"Eve/Pi Controlled {feed_type}"].lower() == "yes":  # type: ignore
                         # --- AUTOMATICALLY CONTROLLED FEED TYPE ---
-                        if tank_meta[f'Max Calib. {feed_type} Pump Rate (ml/s)'] == 'NA':
-                            grp[f'Pumped {feed_type} Vol (ml)'] = grp.get(f'{feed_type} Pump.Total volume, ml', np.nan) # type: ignore
+                        if (
+                            tank_meta[f"Max Calib. {feed_type} Pump Rate (ml/s)"]
+                            == "NA"
+                        ):
+                            grp[f"Pumped {feed_type} Vol (ml)"] = grp.get(
+                                f"{feed_type} Pump.Total volume, ml", np.nan
+                            )  # type: ignore
                         else:
-                            pump_rate = tank_meta[f'Max Calib. {feed_type} Pump Rate (ml/s)'] # type: ignore
-                            feed_pct = grp.get(f'{feed_type}, %', np.nan) # type: ignore
-                            duration = grp.get(f'{feed_type}.Duration, s', np.nan) # type: ignore
-                            grp[f'Pumped {feed_type} Vol (ml)'] = pump_rate * feed_pct * duration
+                            pump_rate = tank_meta[
+                                f"Max Calib. {feed_type} Pump Rate (ml/s)"
+                            ]  # type: ignore
+                            feed_pct = grp.get(f"{feed_type}, %", np.nan)  # type: ignore
+                            duration = grp.get(f"{feed_type}.Duration, s", np.nan)  # type: ignore
+                            grp[f"Pumped {feed_type} Vol (ml)"] = (
+                                pump_rate * feed_pct * duration
+                            )
                     else:
                         # --- MANUALLY CONTROLLED FEED TYPE USING TIME PROFILE AND TARGET RATE ---
-                        
+
                         # Parse the time profile from the metadata
                         time_profile = (
-                            str(tank_meta[f'Manual {feed_type} Time Profile (h)']).replace(' ', '').split(';') # type: ignore
+                            str(tank_meta[f"Manual {feed_type} Time Profile (h)"])
+                            .replace(" ", "")
+                            .split(";")  # type: ignore
                         )
                         # Parse the target rate from the metadata
                         target_rate = (
-                            str(tank_meta[f'Manual Target {feed_type} Rate (ml/h)']).replace(' ', '').split(';') # type: ignore
+                            str(tank_meta[f"Manual Target {feed_type} Rate (ml/h)"])
+                            .replace(" ", "")
+                            .split(";")  # type: ignore
                         )
                         # Integrate the time profile and target rate to get the pumped volume
-                        grp['Pump Rate (ml/h)'] = 0.
+                        grp["Pump Rate (ml/h)"] = 0.0
                         for interval, rate_str in zip(time_profile, target_rate):
-                            t_start, t_end = map(float, interval.split('-'))
-                            grp['Pump Rate (ml/h)'] += (
-                                (grp['Time (h)'] > t_start) & (grp['Time (h)'] <= t_end)
+                            t_start, t_end = map(float, interval.split("-"))
+                            grp["Pump Rate (ml/h)"] += (
+                                (grp["Time (h)"] > t_start) & (grp["Time (h)"] <= t_end)
                             ) * float(rate_str)
-                        grp[f'Pumped {feed_type} Vol (ml)'] = (
-                            grp['Pump Rate (ml/h)'].rolling(window=2).mean() * grp['Time (h)'].diff() # type: ignore
-                        ).cumsum().fillna(0) # type: ignore
-                    
+                        grp[f"Pumped {feed_type} Vol (ml)"] = (
+                            (
+                                grp["Pump Rate (ml/h)"].rolling(window=2).mean()
+                                * grp["Time (h)"].diff()  # type: ignore
+                            )
+                            .cumsum()
+                            .fillna(0)
+                        )  # type: ignore
+
                     # If the measured added volume is not 'NA', correct the pumped volume using the measured added volume
-                    if tank_meta[f'Measured Added {feed_type} (ml)'] != 'NA': # type: ignore
-                        uncorrected_total_vol = grp[grp['Time (h)'] == tank_meta['EFT (h)'] # type: ignore
-                                                    ][f'Pumped {feed_type} Vol (ml)']
-                        if not uncorrected_total_vol.empty: # type: ignore
-                            grp[f'Pumped {feed_type} Vol (ml)'] = grp[f'Pumped {feed_type} Vol (ml)'] * (
-                                tank_meta[f'Measured Added {feed_type} (ml)'] / float(uncorrected_total_vol.iloc[0]) # type: ignore
+                    if tank_meta[f"Measured Added {feed_type} (ml)"] != "NA":  # type: ignore
+                        uncorrected_total_vol = grp[
+                            grp["Time (h)"] == tank_meta["EFT (h)"]  # type: ignore
+                        ][f"Pumped {feed_type} Vol (ml)"]
+                        if not uncorrected_total_vol.empty:  # type: ignore
+                            grp[f"Pumped {feed_type} Vol (ml)"] = grp[
+                                f"Pumped {feed_type} Vol (ml)"
+                            ] * (
+                                tank_meta[f"Measured Added {feed_type} (ml)"]
+                                / float(uncorrected_total_vol.iloc[0])  # type: ignore
                             )
 
             # Add the total fed volume, combined feeds weight, and added carbon weight
-            grp['Total Fed Vol (ml)'] = 0
-            grp['Combined Feeds Weight (g)'] = 0
-            grp['Added Carbon Weight (g)'] = 0
-            for feed_type in ['Feed', 'Co-feed', 'Bolus', 'Acid', 'Base']:
-                grp['Total Fed Vol (ml)'] += grp.get(f'Pumped {feed_type} Vol (ml)', 0) # type: ignore
-                if tank_meta[f'{feed_type} Density (g/ml)'] != 'NA':
-                    grp['Combined Feeds Weight (g)'] += grp.get(f'Pumped {feed_type} Vol (ml)', 0) * tank_meta[f'{feed_type} Density (g/ml)'] # type: ignore
-                if (feed_type in ['Feed', 'Co-feed', 'Bolus']) and (tank_meta[f'{feed_type} Element'].lower() == 'carbon'): # type: ignore
-                    grp['Added Carbon Weight (g)'] += grp[f'Pumped {feed_type} Vol (ml)'] / 1000 * tank_meta[f'Target {feed_type} Conc. (g/l)'] # type: ignore
+            grp["Total Fed Vol (ml)"] = 0
+            grp["Combined Feeds Weight (g)"] = 0
+            grp["Added Carbon Weight (g)"] = 0
+            for feed_type in ["Feed", "Co-feed", "Bolus", "Acid", "Base"]:
+                grp["Total Fed Vol (ml)"] += grp.get(f"Pumped {feed_type} Vol (ml)", 0)  # type: ignore
+                if tank_meta[f"{feed_type} Density (g/ml)"] != "NA":
+                    grp["Combined Feeds Weight (g)"] += (
+                        grp.get(f"Pumped {feed_type} Vol (ml)", 0)
+                        * tank_meta[f"{feed_type} Density (g/ml)"]
+                    )  # type: ignore
+                if (feed_type in ["Feed", "Co-feed", "Bolus"]) and (
+                    tank_meta[f"{feed_type} Element"].lower() == "carbon"
+                ):  # type: ignore
+                    grp["Added Carbon Weight (g)"] += (
+                        grp[f"Pumped {feed_type} Vol (ml)"]
+                        / 1000
+                        * tank_meta[f"Target {feed_type} Conc. (g/l)"]
+                    )  # type: ignore
 
             if not self.augmented_bench_table.empty:
-                bench_grp = self.augmented_bench_table[self.augmented_bench_table['Tank'] == grp.name] # type: ignore
+                bench_grp = self.augmented_bench_table[
+                    self.augmented_bench_table["Tank"] == grp.name
+                ]  # type: ignore
 
-                if (bench_grp.get('Sample Weight (g)') is not None) or (bench_grp.get('Sample Vol (ml)') is not None): # type: ignore
-                    nan_col = [np.nan] * len(bench_grp) # type: ignore
-                    sample_vol = bench_grp.get('Sample Vol (ml)', nan_col) # type: ignore
-                    sample_weight = bench_grp.get('Sample Weight (g)', sample_vol * bench_grp.get((panel_display_names.get('Ferm', 'Ferm'), 'Sample Density (g/ml)'), nan_col)) # type: ignore
-                    grp['Removed Sample Vol (ml)'] = 0.
-                    grp['Removed Sample Weight (g)'] = 0.
-                    for time, vol, weight in zip(bench_grp['Time (h)'], sample_vol, sample_weight): # type: ignore
-                        grp['Removed Sample Vol (ml)'] += (grp['Time (h)'] > time) * vol
-                        grp['Removed Sample Weight (g)'] += (grp['Time (h)'] > time) * weight
-                    
-                    mass_balance_num = ( # type: ignore
-                        grp.get('Combined Feeds Weight (g)', np.nan) - grp.get('Removed Sample Weight (g)', np.nan) + # type: ignore
-                        grp.get('OURT (g)', np.nan) - grp.get('CERT (g)', np.nan) # type: ignore
+                if (bench_grp.get("Sample Weight (g)") is not None) or (
+                    bench_grp.get("Sample Vol (ml)") is not None
+                ):  # type: ignore
+                    nan_col = [np.nan] * len(bench_grp)  # type: ignore
+                    sample_vol = bench_grp.get("Sample Vol (ml)", nan_col)  # type: ignore
+                    sample_weight = bench_grp.get(
+                        "Sample Weight (g)",
+                        sample_vol
+                        * bench_grp.get(
+                            (
+                                panel_display_names.get("Ferm", "Ferm"),
+                                "Sample Density (g/ml)",
+                            ),
+                            nan_col,
+                        ),
+                    )  # type: ignore
+                    grp["Removed Sample Vol (ml)"] = 0.0
+                    grp["Removed Sample Weight (g)"] = 0.0
+                    for time, vol, weight in zip(
+                        bench_grp["Time (h)"], sample_vol, sample_weight
+                    ):  # type: ignore
+                        grp["Removed Sample Vol (ml)"] += (grp["Time (h)"] > time) * vol
+                        grp["Removed Sample Weight (g)"] += (
+                            grp["Time (h)"] > time
+                        ) * weight
+
+                    mass_balance_num = (  # type: ignore
+                        grp.get("Combined Feeds Weight (g)", np.nan)
+                        - grp.get("Removed Sample Weight (g)", np.nan)  # type: ignore
+                        + grp.get("OURT (g)", np.nan)
+                        - grp.get("CERT (g)", np.nan)  # type: ignore
                     )
-                    grp['Mass Balance (%)'] = mass_balance_num / 1000 / grp.get('Weight, kg', np.nan) * 100 # type: ignore
+                    grp["Mass Balance (%)"] = (
+                        mass_balance_num / 1000 / grp.get("Weight, kg", np.nan) * 100
+                    )  # type: ignore
             return grp
 
-    def _add_key_cols_to_bench(self, grp: pd.DataFrame, panels_for_try: Dict[str, List[str]], panel_display_names: Dict[str, str], carbon_panels: Dict[str, List[str]]) -> pd.DataFrame:
+    def _add_key_cols_to_bench(
+        self,
+        grp: pd.DataFrame,
+        panels_for_try: Dict[str, List[str]],
+        panel_display_names: Dict[str, str],
+        carbon_panels: Dict[str, List[str]],
+    ) -> pd.DataFrame:
         """Adds broth-volume, carbon-balance, and TRY KPI columns to one tank's bench group.
 
         For seed tanks (name starts with ``'S'``) only ``Replicate`` and
@@ -1145,46 +1345,68 @@ class AugmentTables:
             Group with the derived columns added in-place.
         """
         tank_meta = self._meta_by_tank.loc[grp.name, :]  # type: ignore
-        grp['Tank'] = grp.name # type: ignore
-        tank_name = str(grp.name) # type: ignore
+        grp["Tank"] = grp.name  # type: ignore
 
         if helpers.is_seed_tank(grp.name):  # type: ignore
-            grp['Replicate'] = int(tank_meta['Replicate']) # type: ignore
-            grp['Total Broth Vol (ml)'] = tank_meta['Initial Broth Vol (ml)']
-            grp = self._compute_try_kpis(grp, panels_for_try, panel_display_names, include_weight_yield=False)
+            grp["Replicate"] = int(tank_meta["Replicate"])  # type: ignore
+            grp["Total Broth Vol (ml)"] = tank_meta["Initial Broth Vol (ml)"]
+            grp = self._compute_try_kpis(
+                grp, panels_for_try, panel_display_names, include_weight_yield=False
+            )
         else:
             # Align bench and process tables on the Time (h) index so that
             # fed-volume and carbon data can be interpolated at sampling timepoints.
-            grp.reset_index(inplace=True) # type: ignore
-            grp.set_index('Time (h)', inplace=True) # type: ignore
-            grp['Replicate'] = int(tank_meta['Replicate']) # type: ignore
-            common_eve_bench_table = self.augmented_process_table[ # type: ignore
-                (self.augmented_process_table['Tank'] == grp.name) # type: ignore
-                & (self.augmented_process_table['Time (h)'].isin(list(grp.index)))].set_index('Time (h)') # type: ignore
+            grp.reset_index(inplace=True)  # type: ignore
+            grp.set_index("Time (h)", inplace=True)  # type: ignore
+            grp["Replicate"] = int(tank_meta["Replicate"])  # type: ignore
+            common_eve_bench_table = self.augmented_process_table[  # type: ignore
+                (self.augmented_process_table["Tank"] == grp.name)  # type: ignore
+                & (self.augmented_process_table["Time (h)"].isin(list(grp.index)))
+            ].set_index("Time (h)")  # type: ignore
 
-            grp['Total Broth Vol (ml)'] = (
-                tank_meta['Initial Broth Vol (ml)'] + common_eve_bench_table['Total Fed Vol (ml)'] -
-                grp.get('Sample Vol (ml)', len(grp) * [0]).cumsum() # type: ignore
+            grp["Total Broth Vol (ml)"] = (
+                tank_meta["Initial Broth Vol (ml)"]
+                + common_eve_bench_table["Total Fed Vol (ml)"]
+                - grp.get("Sample Vol (ml)", len(grp) * [0]).cumsum()  # type: ignore
             )
-            grp['Added Carbon Weight (g)'] = common_eve_bench_table['Added Carbon Weight (g)']
-            grp['Total Carbon in Broth (g)'] = grp['Total Broth Vol (ml)'] / 1000 * (
-                pd.concat( # type: ignore
-                    [
-                        grp.get((panel, f'{analyte} (g/L)'), pd.Series([0] * len(grp), index=grp.index)) # type: ignore
-                        for panel in carbon_panels.keys() for analyte in carbon_panels[panel]
-                    ],
-                    axis='columns',
-                )
-            ).sum(axis='columns')
-            grp['Total Carbon Consumed (g)'] = (
-                float(grp.loc[0., 'Total Carbon in Broth (g)']) + grp['Added Carbon Weight (g)'] - # type: ignore
-                grp['Total Carbon in Broth (g)'] # type: ignore
+            grp["Added Carbon Weight (g)"] = common_eve_bench_table[
+                "Added Carbon Weight (g)"
+            ]
+            grp["Total Carbon in Broth (g)"] = (
+                grp["Total Broth Vol (ml)"]
+                / 1000
+                * (
+                    pd.concat(  # type: ignore
+                        [
+                            grp.get(
+                                (panel, f"{analyte} (g/L)"),
+                                pd.Series([0] * len(grp), index=grp.index),
+                            )  # type: ignore
+                            for panel in carbon_panels.keys()
+                            for analyte in carbon_panels[panel]
+                        ],
+                        axis="columns",
+                    )
+                ).sum(axis="columns")
             )
-            grp = grp.reset_index().set_index('index') # type: ignore
-            grp = self._compute_try_kpis(grp, panels_for_try, panel_display_names, include_weight_yield=True)
+            grp["Total Carbon Consumed (g)"] = (
+                float(grp.loc[0.0, "Total Carbon in Broth (g)"])
+                + grp["Added Carbon Weight (g)"]  # type: ignore
+                - grp["Total Carbon in Broth (g)"]  # type: ignore
+            )
+            grp = grp.reset_index().set_index("index")  # type: ignore
+            grp = self._compute_try_kpis(
+                grp, panels_for_try, panel_display_names, include_weight_yield=True
+            )
         return grp
 
-    def _compute_try_kpis(self, grp: pd.DataFrame, panels_for_try: Dict[str, List[str]], panel_display_names: Dict[str, str], include_weight_yield: bool = False) -> pd.DataFrame:
+    def _compute_try_kpis(
+        self,
+        grp: pd.DataFrame,
+        panels_for_try: Dict[str, List[str]],
+        panel_display_names: Dict[str, str],
+        include_weight_yield: bool = False,
+    ) -> pd.DataFrame:
         """Computes insoluble-solids-corrected TRY KPI columns for a tank group.
 
         For every ``(panel, product)`` pair in ``panels_for_try``, the raw
@@ -1218,34 +1440,52 @@ class AugmentTables:
         """
         for panel, products in panels_for_try.items():
             for product in products:
-                if (panel, f'{product} (g/L)') not in grp.columns:
+                if (panel, f"{product} (g/L)") not in grp.columns:
                     continue
                 # Calculate the corrected titer
-                grp[(panel, f'{product} Titer (g/L)')] = (
-                    grp[(panel, f'{product} (g/L)')] * (
-                        1. -
-                        grp.get((panel_display_names.get('Ferm', 'Ferm'), '% Insoluble Solids (g/g)'), 0) / 100. # type: ignore
+                grp[(panel, f"{product} Titer (g/L)")] = grp[
+                    (panel, f"{product} (g/L)")
+                ] * (
+                    1.0
+                    - grp.get(
+                        (
+                            panel_display_names.get("Ferm", "Ferm"),
+                            "% Insoluble Solids (g/g)",
+                        ),
+                        0,
                     )
+                    / 100.0  # type: ignore
                 )
                 # Drop the raw titer column
-                grp.drop((panel, f'{product} (g/L)'), axis='columns', inplace=True)
+                grp.drop((panel, f"{product} (g/L)"), axis="columns", inplace=True)
                 # Calculate the specific titer
-                grp[(panel, f'{product} Sp. Titer (g/g)')] = (
-                    grp[(panel, f'{product} Titer (g/L)')] /
-                    grp.get((panel_display_names.get('Ferm', 'Ferm'), 'DCW (g/L)'), np.nan) # type: ignore
+                grp[(panel, f"{product} Sp. Titer (g/g)")] = (
+                    grp[(panel, f"{product} Titer (g/L)")]
+                    / grp.get(
+                        (panel_display_names.get("Ferm", "Ferm"), "DCW (g/L)"), np.nan
+                    )  # type: ignore
                 )
                 # Calculate the rate
-                grp[(panel, f'{product} Rate (g/L/h)')] = (grp[(panel, f'{product} Titer (g/L)')] / grp['Time (h)'])
+                grp[(panel, f"{product} Rate (g/L/h)")] = (
+                    grp[(panel, f"{product} Titer (g/L)")] / grp["Time (h)"]
+                )
                 # Calculate the instantaneous rate
-                grp[(panel, f'{product} Ins. Rate (g/L/h)')
-                    ] = (grp[(panel, f'{product} Titer (g/L)')].diff() / grp['Time (h)'].diff()) # type: ignore
+                grp[(panel, f"{product} Ins. Rate (g/L/h)")] = (
+                    grp[(panel, f"{product} Titer (g/L)")].diff()
+                    / grp["Time (h)"].diff()
+                )  # type: ignore
                 if include_weight_yield:
                     # Calculate the product weight
-                    grp[(panel, f'{product} Weight (g)')
-                        ] = (grp[(panel, f'{product} Titer (g/L)')] * grp['Total Broth Vol (ml)'] / 1000)
+                    grp[(panel, f"{product} Weight (g)")] = (
+                        grp[(panel, f"{product} Titer (g/L)")]
+                        * grp["Total Broth Vol (ml)"]
+                        / 1000
+                    )
                     # Calculate the product yield
-                    grp[(panel, f'{product} Yield (g/g)')
-                        ] = (grp[(panel, f'{product} Weight (g)')] / grp['Total Carbon Consumed (g)'])
+                    grp[(panel, f"{product} Yield (g/g)")] = (
+                        grp[(panel, f"{product} Weight (g)")]
+                        / grp["Total Carbon Consumed (g)"]
+                    )
         return grp
 
     @classmethod

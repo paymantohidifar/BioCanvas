@@ -1,4 +1,5 @@
 """Tests for biocanvas.utils.logging_config."""
+
 import logging
 import os
 
@@ -64,7 +65,9 @@ class TestSetupLogging:
         debug_log = str(tmp_path / "biocanvas_debug.log")
         meta_log = str(tmp_path / "meta_qc.log")
 
-        logging_config.setup_logging(log_level=logging.INFO, log_file=debug_log, console=False)
+        logging_config.setup_logging(
+            log_level=logging.INFO, log_file=debug_log, console=False
+        )
         logging_config.setup_logging(
             log_level=logging.INFO,
             log_file=meta_log,
@@ -95,15 +98,18 @@ class TestClassifyMsgLevel:
     """classify_msg_level maps message prefixes to severity strings."""
 
     def test_returns_success_for_successfully_prefix(self):
-        assert logging_config.classify_msg_level("Successfully augmented tables") == 'success'
-        assert logging_config.classify_msg_level("SUCCESSFULLY COMPLETED") == 'success'
+        assert (
+            logging_config.classify_msg_level("Successfully augmented tables")
+            == "success"
+        )
+        assert logging_config.classify_msg_level("SUCCESSFULLY COMPLETED") == "success"
 
     def test_returns_error_for_error_and_failed_prefixes(self):
-        assert logging_config.classify_msg_level("Error loading file") == 'error'
-        assert logging_config.classify_msg_level("Failed to connect") == 'error'
-        assert logging_config.classify_msg_level("ERROR: unexpected value") == 'error'
+        assert logging_config.classify_msg_level("Error loading file") == "error"
+        assert logging_config.classify_msg_level("Failed to connect") == "error"
+        assert logging_config.classify_msg_level("ERROR: unexpected value") == "error"
 
     def test_returns_warning_for_everything_else(self):
-        assert logging_config.classify_msg_level("Running calculation") == 'warning'
-        assert logging_config.classify_msg_level("Data table is empty") == 'warning'
-        assert logging_config.classify_msg_level("") == 'warning'
+        assert logging_config.classify_msg_level("Running calculation") == "warning"
+        assert logging_config.classify_msg_level("Data table is empty") == "warning"
+        assert logging_config.classify_msg_level("") == "warning"

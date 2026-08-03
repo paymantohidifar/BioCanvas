@@ -1,5 +1,6 @@
 # biocanvas/utils/auth.py
 """Passcode hashing and verification utilities."""
+
 import os
 import json
 import hashlib
@@ -30,7 +31,9 @@ def hash_passcode(passcode: str) -> str:
         'a3f1c2...:9c2b47...'
     """
     salt = secrets.token_hex(16)
-    key = hashlib.pbkdf2_hmac('sha256', passcode.encode('utf-8'), salt.encode('utf-8'), 100_000)
+    key = hashlib.pbkdf2_hmac(
+        "sha256", passcode.encode("utf-8"), salt.encode("utf-8"), 100_000
+    )
     return f"{salt}:{key.hex()}"
 
 
@@ -47,8 +50,10 @@ def verify_passcode(stored_hash: str, passcode: str) -> bool:
         True if the passcode matches the stored hash, False otherwise.
     """
     try:
-        salt, key_hex = stored_hash.split(':', 1)
-        new_key = hashlib.pbkdf2_hmac('sha256', passcode.encode('utf-8'), salt.encode('utf-8'), 100_000)
+        salt, key_hex = stored_hash.split(":", 1)
+        new_key = hashlib.pbkdf2_hmac(
+            "sha256", passcode.encode("utf-8"), salt.encode("utf-8"), 100_000
+        )
         return hmac.compare_digest(new_key.hex(), key_hex)
     except Exception:
         return False
@@ -75,7 +80,7 @@ def load_passcode_hashes(filepath: str) -> Dict[str, str]:
             f"Passcode hash file not found: '{filepath}'. "
             "Generate hashes with utils.hash_passcode() and create the file."
         )
-    with open(filepath, 'r') as f:
+    with open(filepath, "r") as f:
         hashes: Dict[str, str] = json.load(f)
     logger.info("Loaded passcode hashes from '%s'", filepath)
     return hashes

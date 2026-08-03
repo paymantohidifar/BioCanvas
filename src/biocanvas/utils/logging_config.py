@@ -1,5 +1,6 @@
 # biocanvas/utils/logging_config.py
 """Logging configuration, log-level helpers, and the HTML display utility."""
+
 import os
 import sys
 import logging
@@ -15,6 +16,7 @@ logger = logging.getLogger(__name__)
 
 class _PackageLogFilter(logging.Filter):
     """Only allows log records from loggers whose name starts with package_prefix."""
+
     def __init__(self, package_prefix: str) -> None:
         super().__init__()
         self.package_prefix = package_prefix
@@ -81,7 +83,9 @@ def setup_logging(
         root_logger.addHandler(console_handler)
 
     if log_file:
-        file_handler = RotatingFileHandler(log_file, maxBytes=10 * 1024 * 1024, backupCount=5)
+        file_handler = RotatingFileHandler(
+            log_file, maxBytes=10 * 1024 * 1024, backupCount=5
+        )
         file_handler.setLevel(log_level)
         file_handler.setFormatter(formatter)
         if file_only_package is not None:
@@ -89,7 +93,9 @@ def setup_logging(
         root_logger.addHandler(file_handler)
 
 
-def apply_root_log_level(level: int, *, preserve_meta_qc_min_level: int = logging.INFO) -> None:
+def apply_root_log_level(
+    level: int, *, preserve_meta_qc_min_level: int = logging.INFO
+) -> None:
     """Apply a new log level to the root logger and all its handlers at runtime.
 
     The meta_qc file handler is protected by preserve_meta_qc_min_level so it
@@ -122,14 +128,16 @@ def classify_msg_level(msg: str) -> str:
         failure, or 'warning' for anything else.
     """
     lower = msg.lower()
-    if lower.startswith('successfully'):
-        return 'success'
-    if any(lower.startswith(kw) for kw in ('error', 'failed')):
-        return 'error'
-    return 'warning'
+    if lower.startswith("successfully"):
+        return "success"
+    if any(lower.startswith(kw) for kw in ("error", "failed")):
+        return "error"
+    return "warning"
 
 
-def display_log_html(output_widget: widgets.Output, log_entries: List[LogEntry]) -> None:
+def display_log_html(
+    output_widget: widgets.Output, log_entries: List[LogEntry]
+) -> None:
     """Renders structured log entries as styled HTML into an ipywidgets Output widget.
 
     Each entry is rendered as a styled <div>; 'separator' entries render as an <hr>.
@@ -142,10 +150,10 @@ def display_log_html(output_widget: widgets.Output, log_entries: List[LogEntry])
     """
     html_parts: List[str] = []
     for message, level in log_entries:
-        if level == 'separator':
+        if level == "separator":
             html_parts.append(f'<hr style="{styles.LOG_STYLES["separator"]}">')
         else:
-            css = styles.LOG_STYLES.get(level, '')
+            css = styles.LOG_STYLES.get(level, "")
             html_parts.append(f'<div style="{css}">{message}</div>')
     with output_widget:
-        display(HTML(''.join(html_parts)))
+        display(HTML("".join(html_parts)))

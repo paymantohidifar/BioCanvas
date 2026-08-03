@@ -9,36 +9,45 @@ and the consolidated process table built by
 ``data_service.DataService._process_ferm_process_panels``) -- they never
 reparse raw CSV/zip file content themselves.
 """
+
 import sqlite3
 from typing import Any, Dict, List, Optional, Tuple
 import pandas as pd  # type: ignore
 
-FEED_TYPES: Tuple[str, ...] = ('Feed', 'Co-feed', 'Bolus', 'Acid', 'Base')
+FEED_TYPES: Tuple[str, ...] = ("Feed", "Co-feed", "Bolus", "Acid", "Base")
 
 # Meta.csv key columns whose source column name is unambiguous.
 _META_SIMPLE_COLUMNS: Dict[str, str] = {
-    'condition': 'Condition',
-    'strain_batch': 'Strain Batch',
-    'strain': 'Strain',
-    'platform': 'Platform',
-    'media': 'Media',
-    'run': 'Run',
+    "condition": "Condition",
+    "strain_batch": "Strain Batch",
+    "strain": "Strain",
+    "platform": "Platform",
+    "media": "Media",
+    "run": "Run",
 }
 
 # Meta.csv key columns whose source column name has varied across raw-file
 # revisions; the first candidate present in the table wins.
 _META_CANDIDATE_COLUMNS: Dict[str, Tuple[str, ...]] = {
-    'ph_setpoint': ('pH Setpoint',),
-    'temp_setpoint_c': ('Temp (°C) Setpoint', 'Temperature Setpoint (°C)'),
-    'do_setpoint_pct': ('DO (%) Setpoint', 'DO Setpoint (%)'),
+    "ph_setpoint": ("pH Setpoint",),
+    "temp_setpoint_c": ("Temp (°C) Setpoint", "Temperature Setpoint (°C)"),
+    "do_setpoint_pct": ("DO (%) Setpoint", "DO Setpoint (%)"),
 }
 
 # Benchling consolidated-table key column names (outer MultiIndex level, or
 # plain column name in non-MultiIndex test fixtures).
-_BENCH_KEY_NAMES = {'Sample', 'Tank', 'Time (h)', 'Sample Vol (ml)', 'Exp', 'Replicate', 'Strain'}
+_BENCH_KEY_NAMES = {
+    "Sample",
+    "Tank",
+    "Time (h)",
+    "Sample Vol (ml)",
+    "Exp",
+    "Replicate",
+    "Strain",
+}
 
 # Process consolidated-table key columns (never imported as measurements).
-_PROCESS_KEY_COLUMNS = {'Tank', 'Time (h)', 'Exp', 'Replicate'}
+_PROCESS_KEY_COLUMNS = {"Tank", "Time (h)", "Exp", "Replicate"}
 
 
 def _to_optional_str(value: Any) -> Optional[str]:
@@ -65,12 +74,12 @@ def _to_optional_int(value: Any) -> Optional[int]:
     return None if as_float is None else int(as_float)
 
 
-def _row_get(row: 'pd.Series[Any]', column: str) -> Any:
+def _row_get(row: "pd.Series[Any]", column: str) -> Any:
     """Returns row[column] if column exists in row's index, else None."""
     return row[column] if column in row.index else None
 
 
-def _row_get_first(row: 'pd.Series[Any]', candidates: Tuple[str, ...]) -> Any:
+def _row_get_first(row: "pd.Series[Any]", candidates: Tuple[str, ...]) -> Any:
     """Returns the first populated value among candidate column names."""
     for column in candidates:
         if column in row.index:
@@ -91,16 +100,20 @@ def get_or_create_project(conn: sqlite3.Connection, project_name: str) -> int:
         The project's integer primary key.
     """
     cur = conn.cursor()
-    cur.execute('SELECT project_id FROM project WHERE project_name = ?', (project_name,))
+    cur.execute(
+        "SELECT project_id FROM project WHERE project_name = ?", (project_name,)
+    )
     row = cur.fetchone()
     if row is not None:
         return int(row[0])
-    cur.execute('INSERT INTO project (project_name) VALUES (?)', (project_name,))
+    cur.execute("INSERT INTO project (project_name) VALUES (?)", (project_name,))
     conn.commit()
     return int(cur.lastrowid)
 
 
-def get_or_create_experiment(conn: sqlite3.Connection, project_id: int, exp: str) -> int:
+def get_or_create_experiment(
+    conn: sqlite3.Connection, project_id: int, exp: str
+) -> int:
     """Returns the experiment_id for (project_id, exp), inserting it if new.
 
     Args:
@@ -113,25 +126,30 @@ def get_or_create_experiment(conn: sqlite3.Connection, project_id: int, exp: str
     """
     cur = conn.cursor()
     cur.execute(
-        'SELECT experiment_id FROM experiment WHERE project_id = ? AND exp = ?', (project_id, exp)
+        "SELECT experiment_id FROM experiment WHERE project_id = ? AND exp = ?",
+        (project_id, exp),
     )
     row = cur.fetchone()
     if row is not None:
         return int(row[0])
-    cur.execute('INSERT INTO experiment (project_id, exp) VALUES (?, ?)', (project_id, exp))
+    cur.execute(
+        "INSERT INTO experiment (project_id, exp) VALUES (?, ?)", (project_id, exp)
+    )
     conn.commit()
     return int(cur.lastrowid)
 
 
-def _import_feed_profiles(cur: sqlite3.Cursor, tank_meta_id: int, row: 'pd.Series[Any]') -> None:
+def _import_feed_profiles(
+    cur: sqlite3.Cursor, tank_meta_id: int, row: "pd.Series[Any]"
+) -> None:
     """Inserts one tank_feed_profile row per populated feed type on row.
 
     A feed type is considered populated when its 'Source' column is present
     and is neither missing nor the 'NA' sentinel used by Meta.csv QC.
     """
     for feed_type in FEED_TYPES:
-        source = _to_optional_str(_row_get(row, f'{feed_type} Source'))
-        if source is None or source == 'NA':
+        source = _to_optional_str(_row_get(row, f"{feed_type} Source"))
+        if source is None or source == "NA":
             continue
         cur.execute(
             """INSERT INTO tank_feed_profile (
@@ -144,19 +162,25 @@ def _import_feed_profiles(cur: sqlite3.Cursor, tank_meta_id: int, row: 'pd.Serie
                 tank_meta_id,
                 feed_type,
                 source,
-                _to_optional_str(_row_get(row, f'{feed_type} Element')),
-                _to_optional_float(_row_get(row, f'{feed_type} Density (g/ml)')),
-                _to_optional_str(_row_get(row, f'Eve/Pi Controlled {feed_type}')),
-                _to_optional_str(_row_get(row, f'Max Calib. {feed_type} Pump Rate (ml/s)')),
-                _to_optional_str(_row_get(row, f'Manual {feed_type} Time Profile (h)')),
-                _to_optional_str(_row_get(row, f'Manual Target {feed_type} Rate (ml/h)')),
-                _to_optional_str(_row_get(row, f'Measured Added {feed_type} (ml)')),
-                _to_optional_str(_row_get(row, f'Target {feed_type} Conc. (g/l)')),
+                _to_optional_str(_row_get(row, f"{feed_type} Element")),
+                _to_optional_float(_row_get(row, f"{feed_type} Density (g/ml)")),
+                _to_optional_str(_row_get(row, f"Eve/Pi Controlled {feed_type}")),
+                _to_optional_str(
+                    _row_get(row, f"Max Calib. {feed_type} Pump Rate (ml/s)")
+                ),
+                _to_optional_str(_row_get(row, f"Manual {feed_type} Time Profile (h)")),
+                _to_optional_str(
+                    _row_get(row, f"Manual Target {feed_type} Rate (ml/h)")
+                ),
+                _to_optional_str(_row_get(row, f"Measured Added {feed_type} (ml)")),
+                _to_optional_str(_row_get(row, f"Target {feed_type} Conc. (g/l)")),
             ),
         )
 
 
-def import_meta_table(conn: sqlite3.Connection, experiment_id: int, meta_table: pd.DataFrame) -> None:
+def import_meta_table(
+    conn: sqlite3.Connection, experiment_id: int, meta_table: pd.DataFrame
+) -> None:
     """Imports a Meta.proc_table-shaped DataFrame into tank_meta + tank_feed_profile.
 
     Expects one row per Tank with the flat wide columns produced by
@@ -173,8 +197,11 @@ def import_meta_table(conn: sqlite3.Connection, experiment_id: int, meta_table: 
         return
     cur = conn.cursor()
     for _, row in meta_table.iterrows():
-        tank = str(row['Tank'])
-        cur.execute('DELETE FROM tank_meta WHERE experiment_id = ? AND tank = ?', (experiment_id, tank))
+        tank = str(row["Tank"])
+        cur.execute(
+            "DELETE FROM tank_meta WHERE experiment_id = ? AND tank = ?",
+            (experiment_id, tank),
+        )
         cur.execute(
             """INSERT INTO tank_meta (
                 experiment_id, tank, condition, replicate, strain_batch, strain,
@@ -184,18 +211,24 @@ def import_meta_table(conn: sqlite3.Connection, experiment_id: int, meta_table: 
             (
                 experiment_id,
                 tank,
-                _to_optional_str(_row_get(row, _META_SIMPLE_COLUMNS['condition'])),
-                _to_optional_int(_row_get(row, 'Replicate')),
-                _to_optional_str(_row_get(row, _META_SIMPLE_COLUMNS['strain_batch'])),
-                _to_optional_str(_row_get(row, _META_SIMPLE_COLUMNS['strain'])),
-                _to_optional_str(_row_get(row, _META_SIMPLE_COLUMNS['platform'])),
-                _to_optional_float(_row_get(row, 'EFT (h)')),
-                _to_optional_str(_row_get(row, _META_SIMPLE_COLUMNS['media'])),
-                _to_optional_float(_row_get(row, 'Initial Broth Vol (ml)')),
-                _to_optional_str(_row_get_first(row, _META_CANDIDATE_COLUMNS['ph_setpoint'])),
-                _to_optional_str(_row_get_first(row, _META_CANDIDATE_COLUMNS['temp_setpoint_c'])),
-                _to_optional_str(_row_get_first(row, _META_CANDIDATE_COLUMNS['do_setpoint_pct'])),
-                _to_optional_str(_row_get(row, _META_SIMPLE_COLUMNS['run'])),
+                _to_optional_str(_row_get(row, _META_SIMPLE_COLUMNS["condition"])),
+                _to_optional_int(_row_get(row, "Replicate")),
+                _to_optional_str(_row_get(row, _META_SIMPLE_COLUMNS["strain_batch"])),
+                _to_optional_str(_row_get(row, _META_SIMPLE_COLUMNS["strain"])),
+                _to_optional_str(_row_get(row, _META_SIMPLE_COLUMNS["platform"])),
+                _to_optional_float(_row_get(row, "EFT (h)")),
+                _to_optional_str(_row_get(row, _META_SIMPLE_COLUMNS["media"])),
+                _to_optional_float(_row_get(row, "Initial Broth Vol (ml)")),
+                _to_optional_str(
+                    _row_get_first(row, _META_CANDIDATE_COLUMNS["ph_setpoint"])
+                ),
+                _to_optional_str(
+                    _row_get_first(row, _META_CANDIDATE_COLUMNS["temp_setpoint_c"])
+                ),
+                _to_optional_str(
+                    _row_get_first(row, _META_CANDIDATE_COLUMNS["do_setpoint_pct"])
+                ),
+                _to_optional_str(_row_get(row, _META_SIMPLE_COLUMNS["run"])),
             ),
         )
         tank_meta_id = int(cur.lastrowid)
@@ -212,10 +245,12 @@ def _column_key(column: Any) -> Tuple[str, str]:
     """
     if isinstance(column, tuple) and len(column) == 2:
         return str(column[0]), str(column[1])
-    return str(column), ''
+    return str(column), ""
 
 
-def import_benchling_table(conn: sqlite3.Connection, experiment_id: int, bench_table: pd.DataFrame) -> None:
+def import_benchling_table(
+    conn: sqlite3.Connection, experiment_id: int, bench_table: pd.DataFrame
+) -> None:
     """Imports a consolidated Benchling DataFrame into benchling_sample + benchling_measurement.
 
     Expects the shape returned by
@@ -239,30 +274,35 @@ def import_benchling_table(conn: sqlite3.Connection, experiment_id: int, bench_t
     metric_columns: List[Any] = []
     for column in bench_table.columns:
         panel, metric = _column_key(column)
-        if metric == '' and panel in _BENCH_KEY_NAMES:
+        if metric == "" and panel in _BENCH_KEY_NAMES:
             key_columns[panel] = column
         else:
             metric_columns.append(column)
 
     for _, row in bench_table.iterrows():
-        tank = str(row[key_columns['Tank']])
-        time_h = float(row[key_columns['Time (h)']])
+        tank = str(row[key_columns["Tank"]])
+        time_h = float(row[key_columns["Time (h)"]])
 
-        sample_value = _to_optional_str(row[key_columns['Sample']]) if 'Sample' in key_columns else None
-        sample = sample_value if sample_value is not None else f'{tank}-T{time_h:g}h'
+        sample_value = (
+            _to_optional_str(row[key_columns["Sample"]])
+            if "Sample" in key_columns
+            else None
+        )
+        sample = sample_value if sample_value is not None else f"{tank}-T{time_h:g}h"
 
         sample_vol_ml = (
-            _to_optional_float(row[key_columns['Sample Vol (ml)']])
-            if 'Sample Vol (ml)' in key_columns
+            _to_optional_float(row[key_columns["Sample Vol (ml)"]])
+            if "Sample Vol (ml)" in key_columns
             else None
         )
 
         cur.execute(
-            'DELETE FROM benchling_sample WHERE experiment_id = ? AND sample = ?', (experiment_id, sample)
+            "DELETE FROM benchling_sample WHERE experiment_id = ? AND sample = ?",
+            (experiment_id, sample),
         )
         cur.execute(
-            'INSERT INTO benchling_sample (experiment_id, sample, tank, time_h, sample_vol_ml) '
-            'VALUES (?, ?, ?, ?, ?)',
+            "INSERT INTO benchling_sample (experiment_id, sample, tank, time_h, sample_vol_ml) "
+            "VALUES (?, ?, ?, ?, ?)",
             (experiment_id, sample, tank, time_h, sample_vol_ml),
         )
         sample_id = int(cur.lastrowid)
@@ -274,22 +314,25 @@ def import_benchling_table(conn: sqlite3.Connection, experiment_id: int, bench_t
             if value is None:
                 continue
             is_std = 0
-            if '_std' in metric:
-                metric = metric.replace('_std', '', 1)
+            if "_std" in metric:
+                metric = metric.replace("_std", "", 1)
                 is_std = 1
             measurement_rows.append((sample_id, panel, metric, value, is_std))
 
         if measurement_rows:
             cur.executemany(
-                'INSERT OR REPLACE INTO benchling_measurement '
-                '(sample_id, panel, metric, value, is_std) VALUES (?, ?, ?, ?, ?)',
+                "INSERT OR REPLACE INTO benchling_measurement "
+                "(sample_id, panel, metric, value, is_std) VALUES (?, ?, ?, ?, ?)",
                 measurement_rows,
             )
     conn.commit()
 
 
 def import_process_table(
-    conn: sqlite3.Connection, experiment_id: int, process_table: pd.DataFrame, vendor: str
+    conn: sqlite3.Connection,
+    experiment_id: int,
+    process_table: pd.DataFrame,
+    vendor: str,
 ) -> None:
     """Imports a consolidated process DataFrame into process_file + process_measurement.
 
@@ -310,18 +353,21 @@ def import_process_table(
     cur = conn.cursor()
     metric_columns = [c for c in process_table.columns if c not in _PROCESS_KEY_COLUMNS]
 
-    for tank, group in process_table.groupby('Tank'):
+    for tank, group in process_table.groupby("Tank"):
         tank = str(tank)
-        cur.execute('DELETE FROM process_file WHERE experiment_id = ? AND tank = ?', (experiment_id, tank))
         cur.execute(
-            'INSERT INTO process_file (experiment_id, tank, vendor) VALUES (?, ?, ?)',
+            "DELETE FROM process_file WHERE experiment_id = ? AND tank = ?",
+            (experiment_id, tank),
+        )
+        cur.execute(
+            "INSERT INTO process_file (experiment_id, tank, vendor) VALUES (?, ?, ?)",
             (experiment_id, tank, vendor),
         )
         process_file_id = int(cur.lastrowid)
 
         measurement_rows: List[Tuple[int, float, str, float]] = []
         for _, row in group.iterrows():
-            time_h = float(row['Time (h)'])
+            time_h = float(row["Time (h)"])
             for column in metric_columns:
                 value = _to_optional_float(row[column])
                 if value is None:
@@ -330,8 +376,8 @@ def import_process_table(
 
         if measurement_rows:
             cur.executemany(
-                'INSERT OR REPLACE INTO process_measurement '
-                '(process_file_id, time_h, channel, value) VALUES (?, ?, ?, ?)',
+                "INSERT OR REPLACE INTO process_measurement "
+                "(process_file_id, time_h, channel, value) VALUES (?, ?, ?, ?)",
                 measurement_rows,
             )
     conn.commit()
