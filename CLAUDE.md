@@ -100,4 +100,4 @@ with real data (ingestion tooling) is a separate follow-up.
 ## Deployment & CI/CD
 
 * **Remote:** [`paymantohidifar/BioCanvas`](https://github.com/paymantohidifar/BioCanvas)
-* **CI (`.github/workflows/ci.yml`):** Triggers on pushes and pull requests targeting `main`/`master` only (not `dev`). Runs `pixi run lint` then `pixi run test` via `prefix-dev/setup-pixi`, using the locked `pixi.lock` environment.
+* **CI (`.github/workflows/ci.yml`):** Triggers on pushes and pull requests targeting `main`/`master` only (not `dev`). Installs `uv` via `astral-sh/setup-uv`, syncs the locked environment (`uv sync --group dev --locked`), then runs `uv run ruff check .` / `uv run ruff format --check .` and `uv run pytest`.

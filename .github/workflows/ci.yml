@@ -17,17 +17,19 @@ jobs:
       - name: Checkout Code Repository
         uses: actions/checkout@v4
 
-      # Step B: Instantiate Locked Pixi Environment
-      - name: Instantiate Locked Pixi Environment
-        uses: prefix-dev/setup-pixi@v0.8.0
-        with:
-          pixi-version: v0.67.0
-          cache: true
-      
+      # Step B: Install uv and sync the locked environment
+      - name: Install uv
+        uses: astral-sh/setup-uv@v9
+
+      - name: Sync Locked Environment
+        run: uv sync --group dev --locked
+
       # Step C: Static Code Analysis (Linting)
       - name: Run Ruff Linter
-        run: pixi run lint
+        run: |
+          uv run ruff check .
+          uv run ruff format --check .
 
       # Step D: Execute Test Suite
       - name: Execute Test Suite
-        run: pixi run test
+        run: uv run pytest
